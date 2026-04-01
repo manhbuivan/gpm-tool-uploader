@@ -2,17 +2,44 @@
   "name": "gpm-youtube-uploader",
   "version": "1.0.0",
   "description": "Tool tự động đăng YouTube Shorts qua GPM Login",
-  "main": "src/index.js",
+  "main": "electron/main.js",
   "scripts": {
     "start": "node src/index.js --run",
     "test-gpm": "node src/index.js --test",
     "list-profiles": "node src/index.js --list-profiles",
     "generate": "node src/index.js --generate",
-    "dry-run": "node src/index.js --dry-run"
+    "dry-run": "node src/index.js --dry-run",
+    "app": "electron .",
+    "build": "electron-builder --win",
+    "build:portable": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.gpm.youtube-uploader",
+    "productName": "GPM YouTube Uploader",
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "electron/icon.png"
+    },
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "config.js",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "schedule.xlsx",
+        "to": "schedule.xlsx"
+      }
+    ]
   },
   "dependencies": {
     "puppeteer-core": "^22.0.0",
     "xlsx": "^0.18.5",
     "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0"
   }
 }

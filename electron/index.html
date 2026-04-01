@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GPM YouTube Shorts Uploader</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #16213e, #0f3460);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #1a3a6a;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #e94560;
+    }
+
+    .header .version {
+      font-size: 12px;
+      color: #888;
+      margin-left: auto;
+    }
+
+    /* Status bar */
+    .status-bar {
+      background: #16213e;
+      padding: 8px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+      border-bottom: 1px solid #1a3a6a;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #666;
+    }
+
+    .status-dot.idle { background: #888; }
+    .status-dot.running { background: #4ade80; animation: pulse 1.5s infinite; }
+    .status-dot.error { background: #e94560; }
+    .status-dot.success { background: #4ade80; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .excel-path {
+      color: #888;
+      font-size: 12px;
+      margin-left: auto;
+      max-width: 400px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Buttons */
+    .controls {
+      padding: 16px 24px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      background: #1a1a2e;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-primary {
+      background: #e94560;
+      color: white;
+    }
+    .btn-primary:hover:not(:disabled) { background: #d63851; }
+
+    .btn-secondary {
+      background: #16213e;
+      color: #e0e0e0;
+      border: 1px solid #2a3a5e;
+    }
+    .btn-secondary:hover:not(:disabled) { background: #1e2d4a; }
+
+    .btn-danger {
+      background: #dc2626;
+      color: white;
+    }
+    .btn-danger:hover:not(:disabled) { background: #b91c1c; }
+
+    .btn-success {
+      background: #16a34a;
+      color: white;
+    }
+    .btn-success:hover:not(:disabled) { background: #15803d; }
+
+    /* Log area */
+    .log-container {
+      flex: 1;
+      margin: 0 24px 16px;
+      background: #0d1117;
+      border-radius: 8px;
+      border: 1px solid #1a3a6a;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .log-header {
+      padding: 8px 16px;
+      background: #161b22;
+      border-bottom: 1px solid #1a3a6a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #888;
+    }
+
+    .log-content {
+      flex: 1;
+      padding: 12px 16px;
+      overflow-y: auto;
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .log-content::-webkit-scrollbar { width: 6px; }
+    .log-content::-webkit-scrollbar-track { background: transparent; }
+    .log-content::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+    /* Log colors */
+    .log-info { color: #58a6ff; }
+    .log-error { color: #f85149; }
+    .log-warn { color: #d29922; }
+    .log-success { color: #3fb950; }
+    .log-debug { color: #8b949e; }
+    .log-line { margin-bottom: 2px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎬 GPM YouTube Shorts Uploader</h1>
+    <span class="version">v1.0.0</span>
+  </div>
+
+  <div class="status-bar">
+    <span class="status-dot idle" id="statusDot"></span>
+    <span id="statusText">Sẵn sàng</span>
+    <span class="excel-path" id="excelPath"></span>
+  </div>
+
+  <div class="controls">
+    <button class="btn btn-primary" id="btnStart" onclick="runCmd('--run')">
+      ▶ Upload Video
+    </button>
+    <button class="btn btn-secondary" id="btnTest" onclick="runCmd('--test')">
+      🔌 Test GPM
+    </button>
+    <button class="btn btn-secondary" id="btnList" onclick="runCmd('--list-profiles')">
+      📋 List Profiles
+    </button>
+    <button class="btn btn-secondary" id="btnGenerate" onclick="runCmd('--generate')">
+      📄 Tạo Excel Mẫu
+    </button>
+    <button class="btn btn-danger" id="btnStop" onclick="stopCmd()" disabled>
+      ⏹ Dừng
+    </button>
+    <button class="btn btn-secondary" onclick="clearLog()">
+      🗑 Xóa Log
+    </button>
+  </div>
+
+  <div class="log-container">
+    <div class="log-header">
+      <span>📝 Log</span>
+      <span id="logCount">0 dòng</span>
+    </div>
+    <div class="log-content" id="logContent"></div>
+  </div>
+
+  <script>
+    const logEl = document.getElementById('logContent');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const logCount = document.getElementById('logCount');
+    let lineCount = 0;
+    let isRunning = false;
+
+    // Load excel path
+    window.api.getExcelPath().then(p => {
+      document.getElementById('excelPath').textContent = '📁 ' + p;
+    });
+
+    function setStatus(status, text) {
+      statusDot.className = 'status-dot ' + status;
+      statusText.textContent = text;
+    }
+
+    function appendLog(text) {
+      const lines = text.split('\n');
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        lineCount++;
+
+        const div = document.createElement('div');
+        div.className = 'log-line';
+
+        // Color based on content
+        if (line.includes('[ERROR]') || line.includes('❌')) {
+          div.classList.add('log-error');
+        } else if (line.includes('[WARN]') || line.includes('⚠️')) {
+          div.classList.add('log-warn');
+        } else if (line.includes('✅') || line.includes('thành công')) {
+          div.classList.add('log-success');
+        } else if (line.includes('[DEBUG]')) {
+          div.classList.add('log-debug');
+        } else {
+          div.classList.add('log-info');
+        }
+
+        div.textContent = line;
+        logEl.appendChild(div);
+      }
+
+      logCount.textContent = lineCount + ' dòng';
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setButtons(running) {
+      isRunning = running;
+      document.getElementById('btnStart').disabled = running;
+      document.getElementById('btnTest').disabled = running;
+      document.getElementById('btnList').disabled = running;
+      document.getElementById('btnGenerate').disabled = running;
+      document.getElementById('btnStop').disabled = !running;
+    }
+
+    async function runCmd(cmd) {
+      if (isRunning) return;
+
+      setButtons(true);
+      setStatus('running', 'Đang chạy: ' + cmd);
+      appendLog(`\n${'═'.repeat(60)}\n🚀 Bắt đầu: ${cmd} — ${new Date().toLocaleString()}\n${'═'.repeat(60)}\n`);
+
+      const result = await window.api.runCommand(cmd);
+
+      if (result.error) {
+        appendLog('❌ Lỗi: ' + result.error + '\n');
+      }
+    }
+
+    async function stopCmd() {
+      const result = await window.api.stopCommand();
+      if (result.success) {
+        appendLog('\n⏹ Đã dừng lệnh.\n');
+      }
+    }
+
+    function clearLog() {
+      logEl.innerHTML = '';
+      lineCount = 0;
+      logCount.textContent = '0 dòng';
+    }
+
+    // Listen for log from main process
+    window.api.onLog((data) => {
+      appendLog(data);
+    });
+
+    window.api.onCommandDone(({ code }) => {
+      setButtons(false);
+      if (code === 0) {
+        setStatus('success', 'Hoàn tất');
+        appendLog('\n✅ Lệnh hoàn tất.\n');
+      } else {
+        setStatus('error', 'Lỗi (code: ' + code + ')');
+        appendLog('\n❌ Lệnh kết thúc với lỗi (code: ' + code + ')\n');
+      }
+    });
+  </script>
+</body>
+</html>
