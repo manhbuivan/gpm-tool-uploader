@@ -100,8 +100,8 @@ function formatScheduleDate(date) {
 }
 
 /**
- * Parse Excel serial number thành Date (không bị lệch timezone)
- * Excel serial: phần nguyên = số ngày kể từ 1899-12-30, phần thập phân = giờ trong ngày
+ * Parse Excel serial number thành Date (cross-timezone safe)
+ * Serial 1 = 1900-01-01, Excel có bug coi 1900 là năm nhuận (serial 60 = 29/2/1900)
  */
 function parseExcelSerial(serial) {
   if (typeof serial !== 'number' || serial <= 0) return null;
@@ -109,45 +109,40 @@ function parseExcelSerial(serial) {
   let dayPart = Math.floor(serial);
   const timePart = serial - dayPart;
 
-  // Excel bug: coi 1900 là năm nhuận, serial 60 = 29/2/1900 (không tồn tại)
-  // Với serial > 60, cần trừ 1 ngày để bù
-  if (dayPart > 60) {
-    dayPart -= 1;
-  }
+  // Excel 1900 leap year bug: serial > 60 cần trừ 1
+  if (dayPart > 60) dayPart -= 1;
 
-  // Tính giờ từ phần thập phân (0.25 = 6h, 0.5 = 12h)
-  const totalMinutes = Math.round(timePart * 24 * 60);
+  const totalMinutes = Math.round(timePart * 1440); // 1440 = 24*60
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
 
-  // Dùng UTC để tránh timezone offset làm lệch ngày
-  // Excel epoch: serial 1 = 1900-01-01 → base = 1899-12-30 UTC
-  const utcMs = Date.UTC(1899, 11, 30) + dayPart * 86400000;
-  const d = new Date(utcMs);
+  // Serial 1 = 1900-01-01 → offset (dayPart - 1) ngày từ 1900-01-01
+  // Nhưng sau khi trừ leap bug, cần trừ thêm 1 vì Excel đếm từ 1 (không phải 0)
+  const ms = Date.UTC(1900, 0, 1) + (dayPart - 2) * 86400000;
+  const utc = new Date(ms);
 
-  // Tạo Date local từ UTC components + giờ phút từ Excel
-  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), hours, minutes, 0, 0);
+  return new Date(utc.getUTCFullYear(), utc.getUTCMonth(), utc.getUTCDate(), hours, minutes, 0, 0);
 }
 
 /**
- * Parse chuỗi ngày giờ từ Excel
- * Hỗ trợ: Excel serial number, Date object, "MM/dd/yyyy H:mm", "yyyy-MM-dd HH:mm"
+ * Parse ngày giờ từ Excel
+ * Hỗ trợ: Excel serial number, string formats (MM/dd/yyyy H:mm, yyyy-MM-dd HH:mm)
  */
 function parseDateTime(value) {
   if (!value && value !== 0) return null;
 
-  // Nếu là số (Excel serial number) — đây là case phổ biến nhất khi đọc từ Excel
+  // Nếu là số (Excel serial number)
   if (typeof value === 'number') {
     return parseExcelSerial(value);
   }
 
-  // Nếu là Date object (Excel đã parse với cellDates: true)
+  // Nếu là Date object
   if (value instanceof Date) return value;
 
   const s = String(value).trim();
   if (!s) return null;
 
-  // Format: MM/dd/yyyy H:mm (VD: 04/01/2026 6:00 = ngày 1 tháng 4 năm 2026 lúc 6h)
+  // Format: MM/dd/yyyy H:mm (VD: 04/01/2026 6:00)
   let match = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})$/);
   if (match) {
     return new Date(

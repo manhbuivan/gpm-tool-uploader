@@ -33,7 +33,7 @@ function readSchedule(filePath) {
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
 
-  // Chuyển thành Array of Arrays — raw: true giữ nguyên giá trị gốc (serial number cho date)
+  // raw: true giữ serial number cho date cells
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: true });
 
   if (rows.length < 2) {
