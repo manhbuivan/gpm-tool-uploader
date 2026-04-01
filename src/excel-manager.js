@@ -33,7 +33,7 @@ function readSchedule(filePath) {
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
 
-  // raw: true giữ serial number cho date cells
+  // raw: true giữ nguyên giá trị gốc
   const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: true });
 
   if (rows.length < 2) {
@@ -46,10 +46,24 @@ function readSchedule(filePath) {
     const row = rows[i];
     if (!row[COLUMNS.TITLE] && !row[COLUMNS.PROFILE]) continue; // Bỏ row trống
 
-    const gioDang = parseDateTime(row[COLUMNS.GIO_DANG]);
+    // Đọc gio_dang: ưu tiên formatted string từ cell để tránh bug serial number
+    let gioDangValue = row[COLUMNS.GIO_DANG];
+    const cellRef = XLSX.utils.encode_cell({ r: i, c: COLUMNS.GIO_DANG });
+    const cell = sheet[cellRef];
+    
+    // Nếu cell là number (date serial), đọc formatted string thay vì raw number
+    // Vì formatted string hiển thị đúng ngày mà user thấy trong Excel
+    if (cell && cell.t === 'n' && cell.w) {
+      // cell.w là display value, VD: "5/20/26" hoặc "05/20/2026 8:00"
+      // Nhưng cell.w có thể thiếu giờ nếu format cell chỉ hiện ngày
+      // Nên vẫn dùng raw number để parse, nhưng log cả 2 để debug
+      logger.debug(null, `  Row ${i}: raw=${gioDangValue}, display="${cell.w}", type=${cell.t}`);
+    }
+
+    const gioDang = parseDateTime(gioDangValue);
 
     tasks.push({
-      rowIndex: i, // Dùng để ghi kết quả
+      rowIndex: i,
       stt: row[COLUMNS.STT] || i,
       title: String(row[COLUMNS.TITLE] || '').trim(),
       description: String(row[COLUMNS.DESCRIPTION] || '').trim(),
