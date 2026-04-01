@@ -29,12 +29,12 @@ function readSchedule(filePath) {
   const excelPath = filePath || config.EXCEL_FILE;
   logger.log(`📂 Đọc file Excel: ${excelPath}`);
 
-  const workbook = XLSX.readFile(excelPath, { cellDates: true });
+  const workbook = XLSX.readFile(excelPath, { cellDates: false });
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
 
-  // Chuyển thành Array of Arrays
-  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+  // Chuyển thành Array of Arrays — raw: true giữ nguyên giá trị gốc (serial number cho date)
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: true });
 
   if (rows.length < 2) {
     throw new Error('File Excel trống hoặc chỉ có header!');
@@ -75,7 +75,7 @@ function readSchedule(filePath) {
 function writeResult(filePath, rowIndex, result) {
   const excelPath = filePath || config.EXCEL_FILE;
 
-  const workbook = XLSX.readFile(excelPath, { cellDates: true });
+  const workbook = XLSX.readFile(excelPath, { cellDates: false });
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
 

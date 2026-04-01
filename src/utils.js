@@ -100,16 +100,48 @@ function formatScheduleDate(date) {
 }
 
 /**
- * Parse chuỗi ngày giờ từ Excel
- * Hỗ trợ format: "yyyy-MM-dd HH:mm" hoặc "dd/MM/yyyy HH:mm"
+ * Parse Excel serial number thành Date (local time, không bị lệch timezone)
+ * Excel serial: phần nguyên = số ngày kể từ 1900-01-01, phần thập phân = giờ trong ngày
+ * VD: 46114.25 = ngày 46114 + 0.25 ngày = 6:00 sáng
  */
-function parseDateTime(str) {
-  if (!str) return null;
+function parseExcelSerial(serial) {
+  if (typeof serial !== 'number' || serial <= 0) return null;
 
-  // Nếu là Date object (Excel đã parse)
-  if (str instanceof Date) return str;
+  // Excel epoch: 1900-01-01, nhưng Excel có bug coi 1900 là năm nhuận (thêm ngày 29/2/1900 không tồn tại)
+  // Nên serial 1 = 1900-01-01, serial 60 = 1900-02-29 (bug), serial 61 = 1900-03-01
+  const dayPart = Math.floor(serial);
+  const timePart = serial - dayPart;
 
-  const s = String(str).trim();
+  // Tính ngày: Excel epoch bắt đầu từ 1899-12-30 (để serial 1 = 1900-01-01)
+  const excelEpoch = new Date(1899, 11, 30); // 1899-12-30 local time
+  const date = new Date(excelEpoch.getTime() + dayPart * 86400000);
+
+  // Tính giờ từ phần thập phân (0.25 = 6h, 0.5 = 12h, 0.75 = 18h)
+  const totalMinutes = Math.round(timePart * 24 * 60); // Làm tròn để tránh floating point error
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+}
+
+/**
+ * Parse chuỗi ngày giờ từ Excel
+ * Hỗ trợ: Excel serial number, Date object, "yyyy-MM-dd HH:mm", "dd/MM/yyyy HH:mm"
+ */
+function parseDateTime(value) {
+  if (!value && value !== 0) return null;
+
+  // Nếu là số (Excel serial number) — đây là case phổ biến nhất khi đọc từ Excel
+  if (typeof value === 'number') {
+    return parseExcelSerial(value);
+  }
+
+  // Nếu là Date object (Excel đã parse với cellDates: true)
+  if (value instanceof Date) return value;
+
+  const s = String(value).trim();
+  if (!s) return null;
 
   // Format: yyyy-MM-dd HH:mm
   let match = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})$/);
@@ -161,5 +193,6 @@ module.exports = {
   sleepWithLog,
   formatScheduleDate,
   parseDateTime,
+  parseExcelSerial,
   ensureDir,
 };
