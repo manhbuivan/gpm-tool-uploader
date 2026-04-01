@@ -468,9 +468,7 @@ async function uploadShort(params) {
         hTemp = 0;
     }
 
-    const ampm = hTemp >= 12 ? 'PM' : 'AM';
-    let h12 = hTemp % 12; if(h12 === 0) h12 = 12;
-    const timeStr = `${h12}:${padNode(mTemp)} ${ampm}`;
+    const timeStr = `${padNode(hTemp)}:${padNode(mTemp)}`;
 
     logger.info(profileId, `  📅 Date: ${dateStr}`);
     logger.info(profileId, `  🕐 Time: ${timeStr}`);
