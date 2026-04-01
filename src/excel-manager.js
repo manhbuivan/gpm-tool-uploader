@@ -45,6 +45,10 @@ function readSchedule(filePath) {
   // Bỏ qua row đầu (header)
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
+    
+    // Log raw row để debug mapping cột
+    logger.debug(null, `  Row ${i} raw: [${row.map((v, idx) => `${idx}="${v}"`).join(', ')}]`);
+    
     if (!row[COLUMNS.TITLE] && !row[COLUMNS.PROFILE]) continue; // Bỏ row trống
 
     // Đọc gio_dang: nếu cell là date serial → convert sang string rồi parse
@@ -56,10 +60,13 @@ function readSchedule(filePath) {
       // Cell là number (date serial) → dùng XLSX format sang string MM/dd/yyyy H:mm
       const formatted = XLSX.SSF.format('mm/dd/yyyy h:mm', cell.v);
       logger.debug(null, `  Row ${i}: serial=${cell.v}, formatted="${formatted}", display="${cell.w}"`);
-      gioDangValue = formatted; // Parse string thay vì serial number
+      gioDangValue = formatted;
+    } else {
+      logger.debug(null, `  Row ${i}: gio_dang raw=${JSON.stringify(gioDangValue)}, type=${typeof gioDangValue}, cell=${JSON.stringify(cell)}`);
     }
 
     const gioDang = parseDateTime(gioDangValue);
+    logger.debug(null, `  Row ${i}: parsed gio_dang=${JSON.stringify(gioDang)}`);
 
     tasks.push({
       rowIndex: i,

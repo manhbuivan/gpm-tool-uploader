@@ -143,6 +143,11 @@ async function runAll(dryRun = false) {
 
   logger.log(`📋 Tổng: ${allTasks.length} tasks | Pending: ${pendingTasks.length}`);
 
+  // Log chi tiết từng task để debug
+  pendingTasks.forEach((t) => {
+    logger.debug(null, `  Task STT ${t.stt}: profile="${t.profile}", title="${t.title}", gio_dang=${JSON.stringify(t.gio_dang)}, folder="${t.folder_video}", video="${t.video_name}", result="${t.result}"`);
+  });
+
   // Validate tasks
   const invalidTasks = pendingTasks.filter((t) => !t.profile || !t.title || !t.gio_dang || !t.folder_video);
   if (invalidTasks.length > 0) {

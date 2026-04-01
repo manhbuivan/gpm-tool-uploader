@@ -175,11 +175,17 @@ function parseDateTime(value) {
   const s = String(value).trim();
   if (!s) return null;
 
-  // Format: MM/dd/yyyy H:mm (VD: 05/20/2026 8:00)
-  let match = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})$/);
+  // Format: MM/dd/yyyy H:mm hoặc M/d/yyyy H:mm:ss AM/PM (hỗ trợ nhiều dấu cách, có/không giây, AM/PM)
+  let match = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
   if (match) {
     let h = parseInt(match[4]);
     let m = parseInt(match[5]);
+    const ampm = (match[7] || '').toUpperCase();
+    
+    // Xử lý AM/PM
+    if (ampm === 'PM' && h < 12) h += 12;
+    if (ampm === 'AM' && h === 12) h = 0;
+    
     // Làm tròn phút lên mốc 15 gần nhất nếu lệch 1 phút (VD: 7:59 → 8:00)
     if (m % 15 === 14) { m += 1; }
     if (m % 15 === 1 && m > 1) { m -= 1; }
