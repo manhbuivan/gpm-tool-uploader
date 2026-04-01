@@ -32,16 +32,9 @@ async function processProfile(tasks, dryRun = false) {
     for (let i = 0; i < tasks.length; i++) {
       const task = tasks[i];
       logger.divider();
-      logger.info(profileId, `📹 Video ${i + 1}/${tasks.length} | STT: ${task.stt}`);
+      logger.info(profileId, `📹 Video ${i + 1}/${tasks.length} | STT: ${task.stt} | Title: ${task.title}`);
 
       try {
-        // Lấy file video từ folder theo index
-        // Đếm số video đã done trong folder này để biết lấy video tiếp theo
-        const allTasks = excelManager.readSchedule();
-        const doneTasks = allTasks.filter(
-          (t) => t.profile === profileId && t.folder_video === task.folder_video && t.result && t.result.startsWith('done')
-        );
-
         let videoPath;
         try {
           if (task.video_name) {
