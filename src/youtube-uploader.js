@@ -958,12 +958,8 @@ async function uploadShort(params) {
     }
     return { success: false, message: `error: ${error.message}` };
   } finally {
-    // Disconnect (không close browser - GPM quản lý)
-    if (browser) {
-      try {
-        browser.disconnect();
-      } catch (e) { /* ignore */ }
-    }
+    // KHÔNG disconnect ở đây — để processProfile quản lý connection
+    // Vì cùng 1 profile có thể upload nhiều video liên tiếp
   }
 }
 
