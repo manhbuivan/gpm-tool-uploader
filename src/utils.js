@@ -100,8 +100,8 @@ function formatScheduleDate(date) {
 }
 
 /**
- * Parse Excel serial number thành Date (cross-timezone safe)
- * Serial 1 = 1900-01-01, Excel có bug coi 1900 là năm nhuận (serial 60 = 29/2/1900)
+ * Parse Excel serial number thành object {year, month, day, hours, minutes}
+ * Không dùng Date object để tránh mọi vấn đề timezone
  */
 function parseExcelSerial(serial) {
   if (typeof serial !== 'number' || serial <= 0) return null;
@@ -112,21 +112,49 @@ function parseExcelSerial(serial) {
   // Excel 1900 leap year bug: serial > 60 cần trừ 1
   if (dayPart > 60) dayPart -= 1;
 
-  const totalMinutes = Math.round(timePart * 1440); // 1440 = 24*60
+  // Tính giờ phút
+  const totalMinutes = Math.round(timePart * 1440);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
 
-  // Serial 1 = 1900-01-01 → offset (dayPart - 1) ngày từ 1900-01-01
-  // Nhưng sau khi trừ leap bug, cần trừ thêm 1 vì Excel đếm từ 1 (không phải 0)
-  const ms = Date.UTC(1900, 0, 1) + (dayPart - 2) * 86400000;
-  const utc = new Date(ms);
+  // Tính ngày tháng năm bằng pure math
+  // Sau khi trừ leap bug: dayPart=1 → 1900-01-01
+  // remaining = dayPart - 1 = số ngày kể từ 1900-01-01 (0-based)
+  // Nhưng Excel đếm serial 1 = ngày đầu tiên, nên offset thêm -1
+  let remaining = dayPart - 2;
+  let y = 1900;
 
-  return new Date(utc.getUTCFullYear(), utc.getUTCMonth(), utc.getUTCDate(), hours, minutes, 0, 0);
+  // Trừ từng năm
+  while (true) {
+    const daysInYear = isLeapYear(y) ? 366 : 365;
+    if (remaining < daysInYear) break;
+    remaining -= daysInYear;
+    y++;
+  }
+
+  // Trừ từng tháng
+  const daysInMonth = [31, isLeapYear(y) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  let m = 1;
+  for (let i = 0; i < 12; i++) {
+    if (remaining < daysInMonth[i]) {
+      m = i + 1;
+      break;
+    }
+    remaining -= daysInMonth[i];
+  }
+
+  const d = remaining + 1; // 0-based → 1-based
+
+  return { year: y, month: m, day: d, hours, minutes };
+}
+
+function isLeapYear(y) {
+  return (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
 }
 
 /**
- * Parse ngày giờ từ Excel
- * Hỗ trợ: Excel serial number, string formats (MM/dd/yyyy H:mm, yyyy-MM-dd HH:mm)
+ * Parse ngày giờ từ Excel → trả về object {year, month, day, hours, minutes}
+ * Không dùng Date object để tránh timezone issues
  */
 function parseDateTime(value) {
   if (!value && value !== 0) return null;
@@ -137,38 +165,42 @@ function parseDateTime(value) {
   }
 
   // Nếu là Date object
-  if (value instanceof Date) return value;
+  if (value instanceof Date) {
+    return {
+      year: value.getFullYear(), month: value.getMonth() + 1, day: value.getDate(),
+      hours: value.getHours(), minutes: value.getMinutes()
+    };
+  }
 
   const s = String(value).trim();
   if (!s) return null;
 
-  // Format: MM/dd/yyyy H:mm (VD: 04/01/2026 6:00)
+  // Format: MM/dd/yyyy H:mm (VD: 05/20/2026 8:00)
   let match = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})$/);
   if (match) {
-    return new Date(
-      parseInt(match[3]),       // year
-      parseInt(match[1]) - 1,   // month (0-based)
-      parseInt(match[2]),       // day
-      parseInt(match[4]),       // hours
-      parseInt(match[5])        // minutes
-    );
+    return {
+      year: parseInt(match[3]), month: parseInt(match[1]), day: parseInt(match[2]),
+      hours: parseInt(match[4]), minutes: parseInt(match[5])
+    };
   }
 
   // Format: yyyy-MM-dd HH:mm
   match = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})$/);
   if (match) {
-    return new Date(
-      parseInt(match[1]),
-      parseInt(match[2]) - 1,
-      parseInt(match[3]),
-      parseInt(match[4]),
-      parseInt(match[5])
-    );
+    return {
+      year: parseInt(match[1]), month: parseInt(match[2]), day: parseInt(match[3]),
+      hours: parseInt(match[4]), minutes: parseInt(match[5])
+    };
   }
 
   // Thử parse trực tiếp
   const d = new Date(s);
-  if (!isNaN(d.getTime())) return d;
+  if (!isNaN(d.getTime())) {
+    return {
+      year: d.getFullYear(), month: d.getMonth() + 1, day: d.getDate(),
+      hours: d.getHours(), minutes: d.getMinutes()
+    };
+  }
 
   return null;
 }

@@ -166,7 +166,10 @@ async function runAll(dryRun = false) {
 
     for (const [profileId, tasks] of Object.entries(profiles)) {
       // Sắp xếp tasks theo giờ đăng
-      tasks.sort((a, b) => (a.gio_dang?.getTime() || 0) - (b.gio_dang?.getTime() || 0));
+      tasks.sort((a, b) => {
+        const toMin = (d) => d ? (d.year * 525600 + d.month * 43800 + d.day * 1440 + d.hours * 60 + d.minutes) : 0;
+        return toMin(a.gio_dang) - toMin(b.gio_dang);
+      });
 
       await processProfile(tasks, dryRun);
 

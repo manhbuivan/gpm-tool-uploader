@@ -115,7 +115,7 @@ async function uploadShort(params) {
 
   logger.info(profileId, `🎬 Upload: ${path.basename(videoPath)}`);
   logger.info(profileId, `📝 Title: ${title}`);
-  logger.info(profileId, `📅 Schedule: ${scheduleDate.toLocaleString()}`);
+  logger.info(profileId, `📅 Schedule: ${scheduleDate.month}/${scheduleDate.day}/${scheduleDate.year} ${scheduleDate.hours}:${String(scheduleDate.minutes).padStart(2,'0')}`);
 
   if (dryRun) {
     logger.info(profileId, '🏃 DRY RUN - Bỏ qua upload thật');
@@ -446,18 +446,18 @@ async function uploadShort(params) {
 
     // 14. Set ngày giờ schedule
     const padNode = n => String(n).padStart(2, '0');
-    const yyNode = scheduleDate.getFullYear();
+    const yyNode = scheduleDate.year;
     
     // Log để debug
-    logger.info(profileId, `  📅 scheduleDate parsed: ${scheduleDate.toISOString()} | local: ${scheduleDate.toLocaleString()}`);
+    logger.info(profileId, `  📅 scheduleDate: ${scheduleDate.day}/${scheduleDate.month}/${scheduleDate.year} ${scheduleDate.hours}:${padNode(scheduleDate.minutes)}`);
 
     // Format date: "20 thg 5, 2026" — YouTube Studio hiển thị tiếng Việt
     const viMonths = ['thg 1', 'thg 2', 'thg 3', 'thg 4', 'thg 5', 'thg 6', 'thg 7', 'thg 8', 'thg 9', 'thg 10', 'thg 11', 'thg 12'];
-    const dateStr = `${scheduleDate.getDate()} ${viMonths[scheduleDate.getMonth()]}, ${yyNode}`;
+    const dateStr = `${scheduleDate.day} ${viMonths[scheduleDate.month - 1]}, ${yyNode}`;
 
     // Time — làm tròn mốc 15 phút (YouTube Studio chỉ nhận 00, 15, 30, 45)
-    let hTemp = scheduleDate.getHours();
-    let mTemp = scheduleDate.getMinutes();
+    let hTemp = scheduleDate.hours;
+    let mTemp = scheduleDate.minutes;
     
     mTemp = Math.round(mTemp / 15) * 15;
     if (mTemp === 60) {
@@ -946,7 +946,7 @@ async function uploadShort(params) {
 
     if (success) {
       logger.info(profileId, `✅ Video đã được schedule thành công!`);
-      return { success: true, message: `done - scheduled ${scheduleDate.toLocaleString()}` };
+      return { success: true, message: `done - scheduled ${scheduleDate.day}/${scheduleDate.month}/${scheduleDate.year} ${scheduleDate.hours}:${String(scheduleDate.minutes).padStart(2,'0')}` };
     } else {
       throw new Error('Schedule video có thể không thành công');
     }
