@@ -100,29 +100,33 @@ function formatScheduleDate(date) {
 }
 
 /**
- * Parse Excel serial number thành Date (local time, không bị lệch timezone)
- * Excel serial: phần nguyên = số ngày kể từ 1900-01-01, phần thập phân = giờ trong ngày
- * VD: 46114.25 = ngày 46114 + 0.25 ngày = 6:00 sáng
+ * Parse Excel serial number thành Date (không bị lệch timezone)
+ * Excel serial: phần nguyên = số ngày kể từ 1899-12-30, phần thập phân = giờ trong ngày
  */
 function parseExcelSerial(serial) {
   if (typeof serial !== 'number' || serial <= 0) return null;
 
-  // Excel epoch: 1900-01-01, nhưng Excel có bug coi 1900 là năm nhuận (thêm ngày 29/2/1900 không tồn tại)
-  // Nên serial 1 = 1900-01-01, serial 60 = 1900-02-29 (bug), serial 61 = 1900-03-01
-  const dayPart = Math.floor(serial);
+  let dayPart = Math.floor(serial);
   const timePart = serial - dayPart;
 
-  // Tính ngày: Excel epoch bắt đầu từ 1899-12-30 (để serial 1 = 1900-01-01)
-  const excelEpoch = new Date(1899, 11, 30); // 1899-12-30 local time
-  const date = new Date(excelEpoch.getTime() + dayPart * 86400000);
+  // Excel bug: coi 1900 là năm nhuận, serial 60 = 29/2/1900 (không tồn tại)
+  // Với serial > 60, cần trừ 1 ngày để bù
+  if (dayPart > 60) {
+    dayPart -= 1;
+  }
 
-  // Tính giờ từ phần thập phân (0.25 = 6h, 0.5 = 12h, 0.75 = 18h)
-  const totalMinutes = Math.round(timePart * 24 * 60); // Làm tròn để tránh floating point error
+  // Tính giờ từ phần thập phân (0.25 = 6h, 0.5 = 12h)
+  const totalMinutes = Math.round(timePart * 24 * 60);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
 
-  date.setHours(hours, minutes, 0, 0);
-  return date;
+  // Dùng UTC để tránh timezone offset làm lệch ngày
+  // Excel epoch: serial 1 = 1900-01-01 → base = 1899-12-30 UTC
+  const utcMs = Date.UTC(1899, 11, 30) + dayPart * 86400000;
+  const d = new Date(utcMs);
+
+  // Tạo Date local từ UTC components + giờ phút từ Excel
+  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), hours, minutes, 0, 0);
 }
 
 /**

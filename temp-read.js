@@ -1,34 +1,20 @@
-const XLSX = require('xlsx');
-const { parseDateTime, parseExcelSerial } = require('./src/utils');
+const { parseExcelSerial } = require('./src/utils');
 
-const wb = XLSX.readFile('schedule.xlsx', { cellDates: false });
-const sheet = wb.Sheets[wb.SheetNames[0]];
+// Kiểm tra serial chính xác cho May 20, 2026
+// Tính ngược: May 20, 2026 → serial = ?
+// base = 1899-12-30, +1 leap year bug cho serial > 60
+const target = new Date(Date.UTC(2026, 4, 20)); // May 20, 2026
+const base = Date.UTC(1899, 11, 30);
+const days = Math.round((target - base) / 86400000);
+const serialWithBug = days + 1; // +1 vì Excel leap year bug (serial > 60 thêm 1)
 
-// Xem raw cell data
-console.log('=== Raw cell E ===');
-['E1','E2','E3','E4','E5','E6'].forEach(ref => {
-  const cell = sheet[ref];
-  if (cell) {
-    console.log(`${ref}:`, JSON.stringify(cell));
-  }
-});
+console.log(`May 20, 2026 → days from epoch: ${days}, serial (with bug): ${serialWithBug}`);
+console.log(`parseExcelSerial(${serialWithBug} + 8/24):`, parseExcelSerial(serialWithBug + 8/24)?.toLocaleString());
+console.log(`parseExcelSerial(${serialWithBug}):`, parseExcelSerial(serialWithBug)?.toLocaleString());
+console.log(`parseExcelSerial(${days}):`, parseExcelSerial(days)?.toLocaleString());
 
-// Đọc với raw: true
-const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: true });
-console.log('\n=== Parse results ===');
-for (let i = 1; i < Math.min(rows.length, 6); i++) {
-  const raw = rows[i][4];
-  const parsed = parseDateTime(raw);
-  console.log(`Row ${i}: raw=${JSON.stringify(raw)} (${typeof raw})`);
-  if (parsed) {
-    console.log(`  -> ${parsed.toLocaleString()}`);
-    console.log(`  -> year=${parsed.getFullYear()} month=${parsed.getMonth()+1} day=${parsed.getDate()} hour=${parsed.getHours()} min=${parsed.getMinutes()}`);
-  }
-  
-  // Nếu là number, test parseExcelSerial trực tiếp
-  if (typeof raw === 'number') {
-    const dayPart = Math.floor(raw);
-    const timePart = raw - dayPart;
-    console.log(`  -> serial: dayPart=${dayPart}, timePart=${timePart}, timePart*24=${timePart*24}h`);
-  }
+// Test range
+for (let s = 46161; s <= 46165; s++) {
+  const d = parseExcelSerial(s + 8/24);
+  console.log(`serial ${s}.333 → ${d?.getFullYear()}-${d?.getMonth()+1}-${d?.getDate()} ${d?.getHours()}:00`);
 }

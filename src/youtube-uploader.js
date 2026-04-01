@@ -451,7 +451,7 @@ async function uploadShort(params) {
     // Log để debug
     logger.info(profileId, `  📅 scheduleDate parsed: ${scheduleDate.toISOString()} | local: ${scheduleDate.toLocaleString()}`);
 
-    // Format tiếng Anh (proxy Mỹ → YouTube Studio hiển thị EN)
+    // Format date: "May 20, 2026" — YouTube Studio (proxy Mỹ) dùng format này
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const dateStr = `${months[scheduleDate.getMonth()]} ${scheduleDate.getDate()}, ${yyNode}`;
 
