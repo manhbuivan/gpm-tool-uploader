@@ -4,8 +4,8 @@ module.exports = {
   // GPM Login API
   GPM_API_BASE: 'http://127.0.0.1:19995',
 
-  // File Excel lịch đăng
-  EXCEL_FILE: path.join(__dirname, 'schedule.xlsx'),
+  // File Excel lịch đăng (hỗ trợ override từ app)
+  EXCEL_FILE: process.env.EXCEL_FILE_OVERRIDE || path.join(__dirname, 'schedule.xlsx'),
 
   // ===== DELAYS (mô phỏng hành vi người thật) =====
   // Delay giữa các thao tác click/type (ms)

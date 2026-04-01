@@ -1,8 +1,10 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { fork } = require('child_process');
 
 let mainWindow;
+let currentProcess = null;
+let customExcelPath = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -26,19 +28,49 @@ function createWindow() {
 app.whenReady().then(createWindow);
 app.on('window-all-closed', () => app.quit());
 
-// Chạy lệnh CLI trong child process
-let currentProcess = null;
+// Chọn file Excel qua dialog
+ipcMain.handle('select-excel', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Chọn file Excel schedule',
+    filters: [{ name: 'Excel', extensions: ['xlsx', 'xls'] }],
+    properties: ['openFile'],
+  });
+  if (!result.canceled && result.filePaths.length > 0) {
+    customExcelPath = result.filePaths[0];
+    return customExcelPath;
+  }
+  return null;
+});
 
-ipcMain.handle('run-command', async (event, command) => {
+// Set đường dẫn Excel thủ công
+ipcMain.handle('set-excel-path', async (_, filePath) => {
+  customExcelPath = filePath;
+  return true;
+});
+
+// Lấy đường dẫn Excel hiện tại
+ipcMain.handle('get-excel-path', async () => {
+  if (customExcelPath) return customExcelPath;
+  const config = require(path.join(__dirname, '..', 'config'));
+  return config.EXCEL_FILE;
+});
+
+// Chạy lệnh CLI
+ipcMain.handle('run-command', async (_, command) => {
   if (currentProcess) {
     return { error: 'Đang có lệnh đang chạy. Hãy đợi hoặc dừng trước.' };
   }
 
   return new Promise((resolve) => {
-    const args = ['src/index.js', command];
-    currentProcess = fork(args[0], [args[1]], {
+    const env = { ...process.env };
+    if (customExcelPath) {
+      env.EXCEL_FILE_OVERRIDE = customExcelPath;
+    }
+
+    currentProcess = fork('src/index.js', [command], {
       cwd: path.join(__dirname, '..'),
       silent: true,
+      env,
     });
 
     let output = '';
@@ -75,10 +107,5 @@ ipcMain.handle('stop-command', async () => {
     currentProcess = null;
     return { success: true };
   }
-  return { success: false, message: 'Không có lệnh nào đang chạy' };
-});
-
-ipcMain.handle('get-excel-path', async () => {
-  const config = require(path.join(__dirname, '..', 'config'));
-  return config.EXCEL_FILE;
+  return { success: false };
 });

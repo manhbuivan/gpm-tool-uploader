@@ -67,14 +67,41 @@
       50% { opacity: 0.4; }
     }
 
-    .excel-path {
+    /* Excel bar */
+    .excel-bar {
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #16213e;
+      border-bottom: 1px solid #1a3a6a;
+      font-size: 13px;
+    }
+
+    .excel-bar label {
       color: #888;
-      font-size: 12px;
-      margin-left: auto;
-      max-width: 400px;
-      overflow: hidden;
-      text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    .excel-bar input {
+      flex: 1;
+      padding: 7px 12px;
+      background: #0d1117;
+      border: 1px solid #2a3a5e;
+      border-radius: 4px;
+      color: #e0e0e0;
+      font-size: 13px;
+      font-family: 'Consolas', monospace;
+    }
+
+    .excel-bar input:focus {
+      outline: none;
+      border-color: #e94560;
+    }
+
+    .btn-sm {
+      padding: 7px 14px;
+      font-size: 12px;
     }
 
     /* Buttons */
@@ -184,7 +211,12 @@
   <div class="status-bar">
     <span class="status-dot idle" id="statusDot"></span>
     <span id="statusText">Sẵn sàng</span>
-    <span class="excel-path" id="excelPath"></span>
+  </div>
+
+  <div class="excel-bar">
+    <label>📁 File Excel:</label>
+    <input type="text" id="excelInput" placeholder="Đường dẫn file Excel..." />
+    <button class="btn btn-secondary btn-sm" onclick="browseExcel()">📂 Chọn file</button>
   </div>
 
   <div class="controls">
@@ -224,9 +256,29 @@
     let lineCount = 0;
     let isRunning = false;
 
+    const excelInput = document.getElementById('excelInput');
+
     // Load excel path
     window.api.getExcelPath().then(p => {
-      document.getElementById('excelPath').textContent = '📁 ' + p;
+      excelInput.value = p;
+    });
+
+    // Chọn file Excel qua dialog
+    async function browseExcel() {
+      const filePath = await window.api.selectExcel();
+      if (filePath) {
+        excelInput.value = filePath;
+      }
+    }
+
+    // Khi user sửa đường dẫn thủ công
+    excelInput.addEventListener('change', () => {
+      window.api.setExcelPath(excelInput.value.trim());
+    });
+    excelInput.addEventListener('blur', () => {
+      if (excelInput.value.trim()) {
+        window.api.setExcelPath(excelInput.value.trim());
+      }
     });
 
     function setStatus(status, text) {
