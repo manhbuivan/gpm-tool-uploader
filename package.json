@@ -1,0 +1,18 @@
+{
+  "name": "gpm-youtube-uploader",
+  "version": "1.0.0",
+  "description": "Tool tự động đăng YouTube Shorts qua GPM Login",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js --run",
+    "test-gpm": "node src/index.js --test",
+    "list-profiles": "node src/index.js --list-profiles",
+    "generate": "node src/index.js --generate",
+    "dry-run": "node src/index.js --dry-run"
+  },
+  "dependencies": {
+    "puppeteer-core": "^22.0.0",
+    "xlsx": "^0.18.5",
+    "winston": "^3.11.0"
+  }
+}

@@ -1,0 +1,99 @@
+[2026-03-31 22:36:03] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd]   ✓ Video đã upload xong!
+[2026-03-31 22:36:05] [DEBUG] [7de1167d-2870-4e20-92e4-4661933786bd]   ✓ Schedule button clicked: #done-button
+[2026-03-31 22:36:10] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] ✅ Video đã được schedule thành công!
+[2026-03-31 22:36:10] [DEBUG]  Đã ghi result "done - scheduled 4/1/2026, 5:59:30 AM" vào row 2
+[2026-03-31 22:36:10] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] ✅ Video 1 thành công!
+[2026-03-31 22:36:10] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] Đang đóng profile...
+[2026-03-31 22:36:10] [DEBUG]  GPM API: GET http://127.0.0.1:19995/api/v3/profiles/close/7de1167d-2870-4e20-92e4-4661933786bd
+[2026-03-31 22:36:32] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] Profile đã đóng.
+════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════
+║  KẾT QUẢ TỔNG KẾT
+════════════════════════════════════════════════════════════
+[2026-03-31 22:36:32] [INFO]  📂 Đọc file Excel: E:\Tool\gpm-youtube-uploader\schedule.xlsx
+[2026-03-31 22:36:32] [INFO]  📋 Đọc được 1 task(s) từ Excel
+[2026-03-31 22:36:32] [INFO]  ✅ Thành công: 1
+[2026-03-31 22:36:32] [INFO]  ❌ Lỗi: 0
+[2026-03-31 22:36:32] [INFO]  ⏳ Chưa xử lý: 0
+[2026-03-31 22:36:32] [INFO]  📄 Kết quả chi tiết: E:\Tool\gpm-youtube-uploader\schedule.xlsx (cột result)
+[2026-03-31 22:39:21] [INFO]  Đang lấy danh sách profiles từ GPM Login...
+[2026-03-31 22:39:21] [DEBUG]  GPM API: GET http://127.0.0.1:19995/api/v3/profiles
+[2026-03-31 22:39:21] [INFO]  ✅ Kết nối GPM Login thành công!
+[2026-03-31 22:39:21] [INFO]  📋 Tìm thấy 5 profile(s)
+[2026-03-31 22:39:21] [INFO]     1. ID: 37aecd81-0814-4fbe-aa25-8cb50256362e | Tên: P-20260331_094849
+[2026-03-31 22:39:21] [INFO]     2. ID: 07cdec29-d1b6-4e8e-ba24-a2f9d61374f7 | Tên: P-20260325_102027
+[2026-03-31 22:39:21] [INFO]     3. ID: 7de1167d-2870-4e20-92e4-4661933786bd | Tên: P-20260325_101740
+[2026-03-31 22:39:21] [INFO]     4. ID: d658a8aa-fe23-4de8-934c-b34af231d6d8 | Tên: P-20260325_101623
+[2026-03-31 22:39:21] [INFO]     5. ID: a4ebeb4c-eb5c-41f3-b1ed-dff9814983a3 | Tên: P-20251229_085813
+════════════════════════════════════════════════════════════
+║  GPM YouTube Shorts Auto Upload
+════════════════════════════════════════════════════════════
+[2026-03-31 22:39:21] [INFO]  Mode: 🚀 LIVE UPLOAD
+[2026-03-31 22:39:21] [INFO]  Excel: E:\Tool\gpm-youtube-uploader\schedule.xlsx
+[2026-03-31 22:39:21] [INFO]  📂 Đọc file Excel: E:\Tool\gpm-youtube-uploader\schedule.xlsx
+[2026-03-31 22:39:21] [INFO]  📋 Đọc được 1 task(s) từ Excel
+[2026-03-31 22:39:21] [INFO]  ✅ Không có video nào cần upload (tất cả đã done)
+[2026-03-31 22:39:45] [INFO]  Đang lấy danh sách profiles từ GPM Login...
+[2026-03-31 22:39:45] [DEBUG]  GPM API: GET http://127.0.0.1:19995/api/v3/profiles
+[2026-03-31 22:39:45] [INFO]  ✅ Kết nối GPM Login thành công!
+[2026-03-31 22:39:45] [INFO]  📋 Tìm thấy 5 profile(s)
+[2026-03-31 22:39:45] [INFO]     1. ID: 37aecd81-0814-4fbe-aa25-8cb50256362e | Tên: P-20260331_094849
+[2026-03-31 22:39:45] [INFO]     2. ID: 07cdec29-d1b6-4e8e-ba24-a2f9d61374f7 | Tên: P-20260325_102027
+[2026-03-31 22:39:45] [INFO]     3. ID: 7de1167d-2870-4e20-92e4-4661933786bd | Tên: P-20260325_101740
+[2026-03-31 22:39:45] [INFO]     4. ID: d658a8aa-fe23-4de8-934c-b34af231d6d8 | Tên: P-20260325_101623
+[2026-03-31 22:39:45] [INFO]     5. ID: a4ebeb4c-eb5c-41f3-b1ed-dff9814983a3 | Tên: P-20251229_085813
+════════════════════════════════════════════════════════════
+║  GPM YouTube Shorts Auto Upload
+════════════════════════════════════════════════════════════
+[2026-03-31 22:39:45] [INFO]  Mode: 🚀 LIVE UPLOAD
+[2026-03-31 22:39:45] [INFO]  Excel: E:\Tool\gpm-youtube-uploader\schedule.xlsx
+[2026-03-31 22:39:45] [INFO]  📂 Đọc file Excel: E:\Tool\gpm-youtube-uploader\schedule.xlsx
+[2026-03-31 22:39:45] [INFO]  📋 Đọc được 1 task(s) từ Excel
+[2026-03-31 22:39:45] [INFO]  📋 Tổng: 1 tasks | Pending: 1
+[2026-03-31 22:39:45] [INFO]  
+📊 Phân bổ:
+[2026-03-31 22:39:45] [INFO]     proxy1: 1 profile(s), 1 video(s)
+[2026-03-31 22:39:45] [INFO]  
+🔌 Proxy proxy1: Bắt đầu xử lý 1 profiles
+════════════════════════════════════════════════════════════
+[2026-03-31 22:39:45] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] 🔄 Bắt đầu xử lý 1 video(s) | Proxy: proxy1
+[2026-03-31 22:39:45] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] Đang mở profile trên GPM Login...
+[2026-03-31 22:39:45] [DEBUG]  GPM API: GET http://127.0.0.1:19995/api/v3/profiles/start/7de1167d-2870-4e20-92e4-4661933786bd?win_size=1280%2C800&win_scale=0.8
+[2026-03-31 22:39:48] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] Profile đã mở. Browser URL: http://127.0.0.1:60188
+════════════════════════════════════════════════════════════
+[2026-03-31 22:39:53] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] 📹 Video 1/1 | STT: 1
+[2026-03-31 22:39:53] [INFO]  📂 Đọc file Excel: E:\Tool\gpm-youtube-uploader\schedule.xlsx
+[2026-03-31 22:39:53] [INFO]  📋 Đọc được 1 task(s) từ Excel
+[2026-03-31 22:39:53] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] 🎬 Upload: grok_job126_3dae7.mp4
+[2026-03-31 22:39:53] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] 📝 Title: manh test 1
+[2026-03-31 22:39:53] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] 📅 Schedule: 4/1/2026, 5:59:30 AM
+[2026-03-31 22:39:53] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] 🌐 Đã kết nối browser
+[2026-03-31 22:39:53] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] 📺 Đang mở YouTube Studio...
+[2026-03-31 22:40:04] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] 📤 Bắt đầu upload...
+[2026-03-31 22:40:14] [DEBUG] [7de1167d-2870-4e20-92e4-4661933786bd]   ✓ Click CREATE: #upload-icon
+[2026-03-31 22:40:26] [DEBUG] [7de1167d-2870-4e20-92e4-4661933786bd]   ✓ Click Upload videos: a[href*="upload"]
+[2026-03-31 22:40:30] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] 📁 Chọn file video...
+[2026-03-31 22:40:30] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd]   ✓ Đã chọn file: grok_job126_3dae7.mp4
+[2026-03-31 22:40:35] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] ✏️ Điền thông tin video...
+[2026-03-31 22:40:38] [DEBUG] [7de1167d-2870-4e20-92e4-4661933786bd]   ✓ Title filled: div#textbox[contenteditable="true"]
+[2026-03-31 22:40:42] [DEBUG] [7de1167d-2870-4e20-92e4-4661933786bd]   ✓ Description filled
+[2026-03-31 22:40:44] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] 👶 Chọn "Not made for kids"...
+[2026-03-31 22:40:44] [DEBUG] [7de1167d-2870-4e20-92e4-4661933786bd]   ✓ Not made for kids selected
+[2026-03-31 22:40:45] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] ➡️ Next → Video elements...
+[2026-03-31 22:40:49] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] ➡️ Next → Checks...
+[2026-03-31 22:40:52] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] ➡️ Next → Visibility...
+[2026-03-31 22:40:57] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] 📅 Thiết lập Schedule...
+[2026-03-31 22:40:57] [WARN] [7de1167d-2870-4e20-92e4-4661933786bd] ⚠️ Không tìm thấy nút Schedule radio
+[2026-03-31 22:41:01] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd]   📅 Date: Apr 1, 2026
+[2026-03-31 22:41:01] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd]   🕐 Time: 5:59 AM
+[2026-03-31 22:41:01] [WARN] [7de1167d-2870-4e20-92e4-4661933786bd] ⚠️ Không tìm thấy ô Date
+[2026-03-31 22:41:03] [WARN] [7de1167d-2870-4e20-92e4-4661933786bd] ⚠️ Không tìm thấy ô Time
+[2026-03-31 22:41:05] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] 🚀 Đang schedule video...
+[2026-03-31 22:41:05] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] ⏳ Đợi video upload hoàn tất...
+[2026-03-31 22:41:18] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd]   ✓ Video đã upload xong!
+[2026-03-31 22:41:20] [DEBUG] [7de1167d-2870-4e20-92e4-4661933786bd]   ✓ Schedule button clicked: #done-button
+[2026-03-31 22:41:25] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] ✅ Video đã được schedule thành công!
+[2026-03-31 22:41:25] [DEBUG]  Đã ghi result "done - scheduled 4/1/2026, 5:59:30 AM" vào row 2
+[2026-03-31 22:41:25] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] ✅ Video 1 thành công!
+[2026-03-31 22:41:25] [INFO] [7de1167d-2870-4e20-92e4-4661933786bd] Đang đóng profile...
+[2026-03-31 22:41:25] [DEBUG]  GPM API: GET http://127.0.0.1:19995/api/v3/profiles/close/7de1167d-2870-4e20-92e4-4661933786bd
