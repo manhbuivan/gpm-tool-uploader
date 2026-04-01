@@ -1,3 +1,5 @@
+const path = require('path');
+const fs = require('fs');
 const config = require('../config');
 const logger = require('./logger');
 const gpmApi = require('./gpm-api');
@@ -39,11 +41,37 @@ async function processProfile(tasks, dryRun = false) {
         const doneTasks = allTasks.filter(
           (t) => t.profile === profileId && t.folder_video === task.folder_video && t.result && t.result.startsWith('done')
         );
-        const videoIndex = i; // Dùng index trong batch hiện tại
 
         let videoPath;
         try {
-          videoPath = getVideoByIndex(task.folder_video, videoIndex);
+          if (task.video_name) {
+            // Có tên file cụ thể
+            let fileName = task.video_name;
+            let fullPath = path.join(task.folder_video, fileName);
+            
+            if (!fs.existsSync(fullPath)) {
+              // Nếu không có đuôi file → tìm file khớp tên trong folder
+              const ext = path.extname(fileName);
+              if (!ext) {
+                const files = fs.readdirSync(task.folder_video);
+                const match = files.find(f => {
+                  const nameWithoutExt = path.basename(f, path.extname(f));
+                  return nameWithoutExt === fileName;
+                });
+                if (match) {
+                  fullPath = path.join(task.folder_video, match);
+                } else {
+                  throw new Error(`Không tìm thấy video "${fileName}" trong folder: ${task.folder_video}`);
+                }
+              } else {
+                throw new Error(`File video không tồn tại: ${fullPath}`);
+              }
+            }
+            videoPath = fullPath;
+          } else {
+            // Không có tên file → lấy theo index (cách cũ)
+            videoPath = getVideoByIndex(task.folder_video, i);
+          }
         } catch (e) {
           logger.error(profileId, `❌ ${e.message}`);
           excelManager.writeResult(config.EXCEL_FILE, task.rowIndex, `error: ${e.message}`);

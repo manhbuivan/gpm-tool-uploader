@@ -13,11 +13,12 @@ const COLUMNS = {
   GIO_DANG: 4,      // E
   PROXY: 5,         // F
   FOLDER_VIDEO: 6,  // G
-  RESULT: 7,        // H (tool tự ghi)
+  VIDEO_NAME: 7,    // H — tên file video (VD: video1.mp4)
+  RESULT: 8,        // I (tool tự ghi)
 };
 
 const HEADER_ROW = [
-  'STT', 'title', 'description', 'profile', 'gio_dang', 'proxy', 'folder_video', 'result'
+  'STT', 'title', 'description', 'profile', 'gio_dang', 'proxy', 'folder_video', 'video_name', 'result'
 ];
 
 /**
@@ -70,6 +71,7 @@ function readSchedule(filePath) {
       gio_dang_raw: String(row[COLUMNS.GIO_DANG] || ''),
       proxy: String(row[COLUMNS.PROXY] || '').trim(),
       folder_video: String(row[COLUMNS.FOLDER_VIDEO] || '').trim(),
+      video_name: String(row[COLUMNS.VIDEO_NAME] || '').trim(),
       result: String(row[COLUMNS.RESULT] || '').trim(),
     });
   }
@@ -179,6 +181,7 @@ function generateSample(filePath, options = {}) {
         `${dateStr} ${timeStr}`,                               // giờ đăng
         proxy,                                                 // proxy
         `C:\\Videos\\kenh${ch + 1}`,                           // folder video
+        `video${v + 1}.mp4`,                                   // video_name
         '',                                                    // result (trống)
       ]);
     }
@@ -196,6 +199,7 @@ function generateSample(filePath, options = {}) {
     { wch: 20 },  // gio_dang
     { wch: 10 },  // proxy
     { wch: 30 },  // folder_video
+    { wch: 20 },  // video_name
     { wch: 20 },  // result
   ];
 
