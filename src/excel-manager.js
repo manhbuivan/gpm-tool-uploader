@@ -104,9 +104,10 @@ function writeResult(filePath, rowIndex, result) {
           logger.error(null, `❌ Vẫn không thể ghi file Excel sau 5 lần thử. Vui lòng tắt file Excel nếu đang mở.`);
         } else {
           logger.warn(null, `⚠️ File Excel đang được mở (bị khóa). Vui lòng đóng file Excel. Đang thử lại lần ${attempts}/5...`);
-          // Sleep đồng bộ 3 giây (Windows)
+          // Sleep đồng bộ 3 giây (cross-platform)
           try {
-            require('child_process').execSync('ping 127.0.0.1 -n 4 > nul');
+            const isWin = process.platform === 'win32';
+            require('child_process').execSync(isWin ? 'ping 127.0.0.1 -n 4 > nul' : 'sleep 3');
           } catch(e) {}
         }
       } else {

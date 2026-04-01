@@ -3,3 +3,6 @@ logs/
 *.log
 .env
 .DS_Store
+schedule.xlsx
+schedule_mau.xlsx
+~$schedule.xlsx

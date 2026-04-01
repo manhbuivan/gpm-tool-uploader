@@ -475,17 +475,26 @@ async function uploadShort(params) {
     const engTime = `${hEng}:${padNode(mTemp)} ${ampm}`;
     const viTime = `${padNode(hTemp)}:${padNode(mTemp)}`;
 
-    // evaluate
-    const { dateStr, timeStr } = await page.evaluate(({engDate, viDate, engTime, viTime}) => {
+    // evaluate — detect format date mà YouTube Studio đang dùng
+    const { dateStr, timeStr, currentDateText } = await page.evaluate(({engDate, viDate, engTime, viTime}) => {
         const lang = document.documentElement.lang || navigator.language || '';
+
+        // Đọc giá trị date hiện tại đang hiển thị trong ô date picker để detect format
+        let currentDateText = '';
+        const dateInput = document.querySelector('#datepicker-trigger input') ||
+                          document.querySelector('ytcp-date-picker input');
+        if (dateInput) {
+            currentDateText = dateInput.value || '';
+        }
+
         if (lang.toLowerCase().startsWith('en')) {
-            return { dateStr: engDate, timeStr: engTime };
+            return { dateStr: engDate, timeStr: engTime, currentDateText };
         } else {
-            return { dateStr: viDate, timeStr: viTime };
+            return { dateStr: viDate, timeStr: viTime, currentDateText };
         }
     }, { engDate, viDate, engTime, viTime });
 
-    logger.info(profileId, `  📅 Date: ${dateStr}`);
+    logger.info(profileId, `  📅 Date: ${dateStr} (current in picker: "${currentDateText}")`);
     logger.info(profileId, `  🕐 Time: ${timeStr}`);
 
     // Helper dùng evaluate để tìm và focus đúng ô Date / Time bằng đệ quy Shadow DOM
@@ -562,43 +571,115 @@ async function uploadShort(params) {
       }, inputType);
     };
 
-    // Set date
+    // Set date — dùng evaluate để set value trực tiếp vào date input, tránh lỗi format locale
     try {
-      const isDateFocused = await findAndFocusInput(page, 'date');
-      
-      if (!isDateFocused) {
-          try {
-              const dInput = await page.$('>>> ytcp-date-picker >>> input, >>> #datepicker-trigger >>> input');
-              if (dInput) {
-                  await dInput.click();
-                  await dInput.evaluate(el => el.select && el.select());
-              } else {
-                  throw new Error('Không tìm thấy ô Date qua fallback handler');
-              }
-          } catch(e) {
-              logger.warn(profileId, `⚠️ Không tìm thấy ô Date fallback: ${e.message}`);
+      // Cách 1: Set giá trị trực tiếp qua DOM (đáng tin nhất)
+      const dateSetResult = await page.evaluate(({dd, mm, yyyy, engDate, viDate}) => {
+        const queryAllDeep = (selector, root = document) => {
+          let results = Array.from(root.querySelectorAll ? root.querySelectorAll(selector) : []);
+          const children = root.querySelectorAll ? root.querySelectorAll('*') : [];
+          for (const child of children) {
+            if (child.shadowRoot) {
+              results = results.concat(queryAllDeep(selector, child.shadowRoot));
+            }
           }
+          return results;
+        };
+
+        // Tìm date input xuyên shadow DOM
+        const inputs = queryAllDeep('input');
+        let dateInput = null;
+        for (const inp of inputs) {
+          const aria = (inp.getAttribute('aria-label') || '').toLowerCase();
+          const placeholder = (inp.placeholder || '').toLowerCase();
+          if (aria.includes('date') || aria.includes('ngày') || placeholder.includes('date') || placeholder.includes('ngày')) {
+            dateInput = inp;
+            break;
+          }
+        }
+
+        // Fallback: tìm input trong date picker component
+        if (!dateInput) {
+          const pickers = queryAllDeep('ytcp-date-picker');
+          for (const picker of pickers) {
+            const inp = picker.querySelector('input') || 
+                        (picker.shadowRoot && picker.shadowRoot.querySelector('input'));
+            if (inp) {
+              dateInput = inp;
+              break;
+            }
+          }
+        }
+
+        if (!dateInput) {
+          return { success: false, reason: 'no-date-input' };
+        }
+
+        // Đọc format hiện tại để detect locale
+        const currentVal = dateInput.value || '';
+        dateInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        dateInput.focus();
+        dateInput.click();
+
+        // Select all text
+        if (typeof dateInput.select === 'function') dateInput.select();
+
+        return { success: true, currentValue: currentVal };
+      }, { dd: ddNode, mm: mmNode, yyyy: yyNode, engDate, viDate });
+
+      logger.debug(profileId, `  Date input found: ${JSON.stringify(dateSetResult)}`);
+
+      if (dateSetResult.success) {
+        // Detect format từ giá trị hiện tại trong ô
+        // Nếu current value chứa tên tháng tiếng Anh (Jan, Feb...) → dùng engDate
+        // Nếu chứa "/" → detect thứ tự MM/dd hay dd/MM
+        let dateToType = dateStr; // Mặc định dùng dateStr đã tính
+
+        const cv = dateSetResult.currentValue;
+        if (cv) {
+          logger.debug(profileId, `  Current date value: "${cv}"`);
+          // YouTube Studio thường hiển thị: "Apr 1, 2026" (EN) hoặc "1 thg 4, 2026" (VI)
+          // Nếu có tên tháng tiếng Anh → dùng engDate
+          if (/[A-Za-z]{3}/.test(cv)) {
+            dateToType = engDate;
+          }
+        }
+
+        // Xóa sạch và type date mới
+        await page.keyboard.down('Meta');
+        await page.keyboard.press('KeyA');
+        await page.keyboard.up('Meta');
+        await page.keyboard.down('Control');
+        await page.keyboard.press('KeyA');
+        await page.keyboard.up('Control');
+        await actionDelay();
+        await page.keyboard.press('Backspace');
+        await actionDelay();
+
+        logger.debug(profileId, `  Typing date: "${dateToType}"`);
+        await page.keyboard.type(dateToType, { delay: 30 });
+        await page.keyboard.press('Enter');
+        await actionDelay();
+        await page.keyboard.press('Escape');
+      } else {
+        // Fallback: dùng findAndFocusInput cũ
+        const isDateFocused = await findAndFocusInput(page, 'date');
+        if (isDateFocused) {
+          await page.keyboard.down('Meta');
+          await page.keyboard.press('KeyA');
+          await page.keyboard.up('Meta');
+          await page.keyboard.down('Control');
+          await page.keyboard.press('KeyA');
+          await page.keyboard.up('Control');
+          await page.keyboard.press('Backspace');
+          await actionDelay();
+          await page.keyboard.type(dateStr, { delay: 30 });
+          await page.keyboard.press('Enter');
+          await actionDelay();
+          await page.keyboard.press('Escape');
+        }
       }
 
-      await sleepWithLog(1000, 'Focus Date');
-
-      // Xóa sạch nội dung cũ — dùng Cmd+A (macOS) hoặc Ctrl+A (Windows/Linux) + triple click
-      // Triple click để select all text trong input
-      await page.keyboard.down('Meta');
-      await page.keyboard.press('KeyA');
-      await page.keyboard.up('Meta');
-      await page.keyboard.down('Control');
-      await page.keyboard.press('KeyA');
-      await page.keyboard.up('Control');
-      await actionDelay();
-      await page.keyboard.press('Backspace');
-      await actionDelay();
-
-      // Đợi ô trống rồi mới type
-      await page.keyboard.type(dateStr, { delay: 30 });
-      await page.keyboard.press('Enter');
-      await actionDelay();
-      await page.keyboard.press('Escape');
       logger.debug(profileId, `  ✓ Date set`);
     } catch (e) {
       logger.warn(profileId, `⚠️ Lỗi set date: ${e.message}`);
