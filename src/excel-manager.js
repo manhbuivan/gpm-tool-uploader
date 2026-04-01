@@ -75,7 +75,8 @@ function readSchedule(filePath) {
 function writeResult(filePath, rowIndex, result) {
   const excelPath = filePath || config.EXCEL_FILE;
 
-  const workbook = XLSX.readFile(excelPath, { cellDates: false });
+  // Đọc giữ nguyên format gốc — không truyền cellDates để tránh thay đổi format hiển thị
+  const workbook = XLSX.readFile(excelPath, { cellStyles: true });
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
 

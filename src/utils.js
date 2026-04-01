@@ -127,7 +127,7 @@ function parseExcelSerial(serial) {
 
 /**
  * Parse chuỗi ngày giờ từ Excel
- * Hỗ trợ: Excel serial number, Date object, "yyyy-MM-dd HH:mm", "dd/MM/yyyy HH:mm"
+ * Hỗ trợ: Excel serial number, Date object, "MM/dd/yyyy H:mm", "yyyy-MM-dd HH:mm"
  */
 function parseDateTime(value) {
   if (!value && value !== 0) return null;
@@ -143,25 +143,25 @@ function parseDateTime(value) {
   const s = String(value).trim();
   if (!s) return null;
 
-  // Format: yyyy-MM-dd HH:mm
-  let match = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})$/);
+  // Format: MM/dd/yyyy H:mm (VD: 04/01/2026 6:00 = ngày 1 tháng 4 năm 2026 lúc 6h)
+  let match = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})$/);
   if (match) {
     return new Date(
-      parseInt(match[1]),
-      parseInt(match[2]) - 1,
-      parseInt(match[3]),
-      parseInt(match[4]),
-      parseInt(match[5])
+      parseInt(match[3]),       // year
+      parseInt(match[1]) - 1,   // month (0-based)
+      parseInt(match[2]),       // day
+      parseInt(match[4]),       // hours
+      parseInt(match[5])        // minutes
     );
   }
 
-  // Format: dd/MM/yyyy HH:mm
-  match = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})$/);
+  // Format: yyyy-MM-dd HH:mm
+  match = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})$/);
   if (match) {
     return new Date(
-      parseInt(match[3]),
-      parseInt(match[2]) - 1,
       parseInt(match[1]),
+      parseInt(match[2]) - 1,
+      parseInt(match[3]),
       parseInt(match[4]),
       parseInt(match[5])
     );
