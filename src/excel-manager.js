@@ -46,18 +46,16 @@ function readSchedule(filePath) {
     const row = rows[i];
     if (!row[COLUMNS.TITLE] && !row[COLUMNS.PROFILE]) continue; // Bỏ row trống
 
-    // Đọc gio_dang: ưu tiên formatted string từ cell để tránh bug serial number
+    // Đọc gio_dang: nếu cell là date serial → convert sang string rồi parse
     let gioDangValue = row[COLUMNS.GIO_DANG];
     const cellRef = XLSX.utils.encode_cell({ r: i, c: COLUMNS.GIO_DANG });
     const cell = sheet[cellRef];
     
-    // Nếu cell là number (date serial), đọc formatted string thay vì raw number
-    // Vì formatted string hiển thị đúng ngày mà user thấy trong Excel
-    if (cell && cell.t === 'n' && cell.w) {
-      // cell.w là display value, VD: "5/20/26" hoặc "05/20/2026 8:00"
-      // Nhưng cell.w có thể thiếu giờ nếu format cell chỉ hiện ngày
-      // Nên vẫn dùng raw number để parse, nhưng log cả 2 để debug
-      logger.debug(null, `  Row ${i}: raw=${gioDangValue}, display="${cell.w}", type=${cell.t}`);
+    if (cell && cell.t === 'n') {
+      // Cell là number (date serial) → dùng XLSX format sang string MM/dd/yyyy H:mm
+      const formatted = XLSX.SSF.format('mm/dd/yyyy h:mm', cell.v);
+      logger.debug(null, `  Row ${i}: serial=${cell.v}, formatted="${formatted}", display="${cell.w}"`);
+      gioDangValue = formatted; // Parse string thay vì serial number
     }
 
     const gioDang = parseDateTime(gioDangValue);

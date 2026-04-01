@@ -178,9 +178,15 @@ function parseDateTime(value) {
   // Format: MM/dd/yyyy H:mm (VD: 05/20/2026 8:00)
   let match = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})$/);
   if (match) {
+    let h = parseInt(match[4]);
+    let m = parseInt(match[5]);
+    // Làm tròn phút lên mốc 15 gần nhất nếu lệch 1 phút (VD: 7:59 → 8:00)
+    if (m % 15 === 14) { m += 1; }
+    if (m % 15 === 1 && m > 1) { m -= 1; }
+    if (m === 60) { m = 0; h += 1; }
     return {
       year: parseInt(match[3]), month: parseInt(match[1]), day: parseInt(match[2]),
-      hours: parseInt(match[4]), minutes: parseInt(match[5])
+      hours: h, minutes: m
     };
   }
 
