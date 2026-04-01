@@ -1,12 +1,34 @@
-const { parseDateTime } = require('./src/utils');
+const XLSX = require('xlsx');
+const { parseDateTime, parseExcelSerial } = require('./src/utils');
 
-const tests = [
-  '04/01/2026 6:00',   // 1 tháng 4, 6h sáng
-  '04/15/2026 18:30',  // 15 tháng 4, 6h30 chiều
-  '12/25/2026 0:00',   // 25 tháng 12, 0h
-];
+const wb = XLSX.readFile('schedule.xlsx', { cellDates: false });
+const sheet = wb.Sheets[wb.SheetNames[0]];
 
-for (const t of tests) {
-  const d = parseDateTime(t);
-  console.log(`"${t}" => ${d ? d.toLocaleString('vi-VN') : 'null'}`);
+// Xem raw cell data
+console.log('=== Raw cell E ===');
+['E1','E2','E3','E4','E5','E6'].forEach(ref => {
+  const cell = sheet[ref];
+  if (cell) {
+    console.log(`${ref}:`, JSON.stringify(cell));
+  }
+});
+
+// Đọc với raw: true
+const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: true });
+console.log('\n=== Parse results ===');
+for (let i = 1; i < Math.min(rows.length, 6); i++) {
+  const raw = rows[i][4];
+  const parsed = parseDateTime(raw);
+  console.log(`Row ${i}: raw=${JSON.stringify(raw)} (${typeof raw})`);
+  if (parsed) {
+    console.log(`  -> ${parsed.toLocaleString()}`);
+    console.log(`  -> year=${parsed.getFullYear()} month=${parsed.getMonth()+1} day=${parsed.getDate()} hour=${parsed.getHours()} min=${parsed.getMinutes()}`);
+  }
+  
+  // Nếu là number, test parseExcelSerial trực tiếp
+  if (typeof raw === 'number') {
+    const dayPart = Math.floor(raw);
+    const timePart = raw - dayPart;
+    console.log(`  -> serial: dayPart=${dayPart}, timePart=${timePart}, timePart*24=${timePart*24}h`);
+  }
 }

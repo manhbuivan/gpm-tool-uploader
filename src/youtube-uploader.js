@@ -447,54 +447,32 @@ async function uploadShort(params) {
     // 14. Set ngày giờ schedule
     const padNode = n => String(n).padStart(2, '0');
     const yyNode = scheduleDate.getFullYear();
-    const mmNode = padNode(scheduleDate.getMonth() + 1);
-    const ddNode = padNode(scheduleDate.getDate());
     
-    // Eng date component
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const engDate = `${months[scheduleDate.getMonth()]} ${scheduleDate.getDate()}, ${yyNode}`;
-    const viDate = `${ddNode}/${mmNode}/${yyNode}`;
+    // Log để debug
+    logger.info(profileId, `  📅 scheduleDate parsed: ${scheduleDate.toISOString()} | local: ${scheduleDate.toLocaleString()}`);
 
-    // Time components - Chú ý: Làm tròn mốc 15 phút (YouTube Studio chỉ nhận 00, 15, 30, 45)
+    // Format tiếng Anh (proxy Mỹ → YouTube Studio hiển thị EN)
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const dateStr = `${months[scheduleDate.getMonth()]} ${scheduleDate.getDate()}, ${yyNode}`;
+
+    // Time — làm tròn mốc 15 phút (YouTube Studio chỉ nhận 00, 15, 30, 45)
     let hTemp = scheduleDate.getHours();
     let mTemp = scheduleDate.getMinutes();
     
-    // Fix sai số làm tròn của Excel (vd 05:59 -> 06:00)
     mTemp = Math.round(mTemp / 15) * 15;
     if (mTemp === 60) {
         mTemp = 0;
         hTemp += 1;
     }
     if (hTemp === 24) {
-        hTemp = 0; // Sang ngày mới (tạm bỏ qua tăng ngày vì hiếm khi đặt 23:59)
+        hTemp = 0;
     }
 
     const ampm = hTemp >= 12 ? 'PM' : 'AM';
-    let hEng = hTemp % 12; if(hEng === 0) hEng = 12;
-    
-    const engTime = `${hEng}:${padNode(mTemp)} ${ampm}`;
-    const viTime = `${padNode(hTemp)}:${padNode(mTemp)}`;
+    let h12 = hTemp % 12; if(h12 === 0) h12 = 12;
+    const timeStr = `${h12}:${padNode(mTemp)} ${ampm}`;
 
-    // evaluate — detect format date mà YouTube Studio đang dùng
-    const { dateStr, timeStr, currentDateText } = await page.evaluate(({engDate, viDate, engTime, viTime}) => {
-        const lang = document.documentElement.lang || navigator.language || '';
-
-        // Đọc giá trị date hiện tại đang hiển thị trong ô date picker để detect format
-        let currentDateText = '';
-        const dateInput = document.querySelector('#datepicker-trigger input') ||
-                          document.querySelector('ytcp-date-picker input');
-        if (dateInput) {
-            currentDateText = dateInput.value || '';
-        }
-
-        if (lang.toLowerCase().startsWith('en')) {
-            return { dateStr: engDate, timeStr: engTime, currentDateText };
-        } else {
-            return { dateStr: viDate, timeStr: viTime, currentDateText };
-        }
-    }, { engDate, viDate, engTime, viTime });
-
-    logger.info(profileId, `  📅 Date: ${dateStr} (current in picker: "${currentDateText}")`);
+    logger.info(profileId, `  📅 Date: ${dateStr}`);
     logger.info(profileId, `  🕐 Time: ${timeStr}`);
 
     // Helper dùng evaluate để tìm và focus đúng ô Date / Time bằng đệ quy Shadow DOM
@@ -574,7 +552,7 @@ async function uploadShort(params) {
     // Set date — dùng evaluate để set value trực tiếp vào date input, tránh lỗi format locale
     try {
       // Cách 1: Set giá trị trực tiếp qua DOM (đáng tin nhất)
-      const dateSetResult = await page.evaluate(({dd, mm, yyyy, engDate, viDate}) => {
+      const dateSetResult = await page.evaluate(() => {
         const queryAllDeep = (selector, root = document) => {
           let results = Array.from(root.querySelectorAll ? root.querySelectorAll(selector) : []);
           const children = root.querySelectorAll ? root.querySelectorAll('*') : [];
@@ -625,24 +603,17 @@ async function uploadShort(params) {
         if (typeof dateInput.select === 'function') dateInput.select();
 
         return { success: true, currentValue: currentVal };
-      }, { dd: ddNode, mm: mmNode, yyyy: yyNode, engDate, viDate });
+      }, {});
 
       logger.debug(profileId, `  Date input found: ${JSON.stringify(dateSetResult)}`);
 
       if (dateSetResult.success) {
-        // Detect format từ giá trị hiện tại trong ô
-        // Nếu current value chứa tên tháng tiếng Anh (Jan, Feb...) → dùng engDate
-        // Nếu chứa "/" → detect thứ tự MM/dd hay dd/MM
-        let dateToType = dateStr; // Mặc định dùng dateStr đã tính
+        // Luôn dùng format tiếng Anh (Apr 1, 2026) — proxy Mỹ
+        let dateToType = dateStr;
 
         const cv = dateSetResult.currentValue;
         if (cv) {
-          logger.debug(profileId, `  Current date value: "${cv}"`);
-          // YouTube Studio thường hiển thị: "Apr 1, 2026" (EN) hoặc "1 thg 4, 2026" (VI)
-          // Nếu có tên tháng tiếng Anh → dùng engDate
-          if (/[A-Za-z]{3}/.test(cv)) {
-            dateToType = engDate;
-          }
+          logger.debug(profileId, `  Current date value in picker: "${cv}"`);
         }
 
         // Xóa sạch và type date mới
