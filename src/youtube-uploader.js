@@ -451,9 +451,9 @@ async function uploadShort(params) {
     // Log để debug
     logger.info(profileId, `  📅 scheduleDate parsed: ${scheduleDate.toISOString()} | local: ${scheduleDate.toLocaleString()}`);
 
-    // Format date: MM/dd/yyyy (proxy Mỹ, VD: 05/20/2026)
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const dateStr = `${padNode(scheduleDate.getMonth() + 1)}/${padNode(scheduleDate.getDate())}/${yyNode}`;
+    // Format date: "20 thg 5, 2026" — YouTube Studio hiển thị tiếng Việt
+    const viMonths = ['thg 1', 'thg 2', 'thg 3', 'thg 4', 'thg 5', 'thg 6', 'thg 7', 'thg 8', 'thg 9', 'thg 10', 'thg 11', 'thg 12'];
+    const dateStr = `${scheduleDate.getDate()} ${viMonths[scheduleDate.getMonth()]}, ${yyNode}`;
 
     // Time — làm tròn mốc 15 phút (YouTube Studio chỉ nhận 00, 15, 30, 45)
     let hTemp = scheduleDate.getHours();
