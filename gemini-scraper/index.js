@@ -17,25 +17,46 @@ function getVideoFiles(folderPath) {
 }
 
 /**
- * Duyệt đệ quy tất cả subfolder, lấy hết video
- * Trả về: [{ name, fullPath, folder }]
+ * Duyệt tất cả kênh + mục, lấy video theo range FROM_DAY → TO_DAY
+ * Cấu trúc: rootPath/Kênh X/1/, rootPath/Kênh X/2/, ...
  */
 function getAllVideos(rootPath) {
   const results = [];
+  const fromDay = config.FROM_DAY || 0;
+  const toDay = config.TO_DAY || 0;
 
-  // Lấy video trong folder hiện tại
-  const videos = getVideoFiles(rootPath);
-  if (videos.length > 0) {
-    results.push(...videos);
-  }
-
-  // Duyệt subfolder
   const entries = fs.readdirSync(rootPath, { withFileTypes: true });
   for (const entry of entries) {
-    if (entry.isDirectory()) {
-      const subVideos = getAllVideos(path.join(rootPath, entry.name));
-      results.push(...subVideos);
+    if (!entry.isDirectory()) continue;
+    const channelPath = path.join(rootPath, entry.name);
+
+    // Đọc subfolder (mục/ngày) trong kênh
+    const subEntries = fs.readdirSync(channelPath, { withFileTypes: true });
+    for (const sub of subEntries) {
+      if (!sub.isDirectory()) continue;
+
+      // Filter theo range nếu tên folder là số
+      const dayNum = parseInt(sub.name);
+      if (!isNaN(dayNum) && fromDay > 0 && toDay > 0) {
+        if (dayNum < fromDay || dayNum > toDay) continue;
+      }
+
+      const dayPath = path.join(channelPath, sub.name);
+      const videos = getVideoFiles(dayPath);
+      results.push(...videos);
     }
+
+    // Cũng lấy video nằm trực tiếp trong folder kênh (nếu có)
+    const directVideos = getVideoFiles(channelPath);
+    if (directVideos.length > 0 && subEntries.filter(s => s.isDirectory()).length === 0) {
+      results.push(...directVideos);
+    }
+  }
+
+  // Nếu folder gốc chứa video trực tiếp (không có subfolder kênh)
+  if (results.length === 0) {
+    const directVideos = getVideoFiles(rootPath);
+    results.push(...directVideos);
   }
 
   return results;
@@ -176,11 +197,17 @@ async function main() {
   const folderPath = args[0];
 
   if (!folderPath) {
-    console.log('Usage: node gemini-scraper/index.js <folder_path>');
-    console.log('  folder_path: đường dẫn folder chứa video mp4');
-    console.log('  Output: output-schedule.xlsx');
+    console.log('Usage: node gemini-scraper/index.js <folder_path> [from_day] [to_day]');
+    console.log('  folder_path : đường dẫn folder gốc chứa các kênh');
+    console.log('  from_day    : mục bắt đầu (mặc định: config)');
+    console.log('  to_day      : mục kết thúc (mặc định: config)');
+    console.log('  VD: node gemini-scraper/index.js "E:\\Videos" 1 3');
     return;
   }
+
+  // Override config từ command line nếu có
+  if (args[1]) config.FROM_DAY = parseInt(args[1]) || 0;
+  if (args[2]) config.TO_DAY = parseInt(args[2]) || 0;
 
   const absPath = path.resolve(folderPath);
   const videos = getAllVideos(absPath);

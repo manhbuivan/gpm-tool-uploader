@@ -5,4 +5,10 @@ module.exports = {
   WAIT_AFTER_UPLOAD: 5000,        // Đợi sau khi upload file (ms)
   WAIT_FOR_RESPONSE: 180000,      // Timeout đợi Gemini response (ms)
   OUTPUT_FILE: 'output-schedule.xlsx',
+
+  // Giới hạn mục (subfolder) trong mỗi kênh
+  // VD: FROM_DAY=1, TO_DAY=3 → chỉ lấy mục 1, 2, 3
+  // Đặt 0 để bỏ qua giới hạn
+  FROM_DAY: 1,
+  TO_DAY: 3,
 };
