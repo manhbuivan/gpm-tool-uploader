@@ -1,8 +1,12 @@
 node_modules/
 logs/
+errors/
 *.log
 .env
 .DS_Store
 schedule.xlsx
 schedule_mau.xlsx
 ~$schedule.xlsx
+output-schedule.xlsx
+*.png
+chrome-gemini-profile/
