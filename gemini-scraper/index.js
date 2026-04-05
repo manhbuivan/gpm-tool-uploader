@@ -196,12 +196,11 @@ async function main() {
   const args = process.argv.slice(2);
   const folderPath = args[0];
 
+  const folderPath = args[0] || config.DEFAULT_FOLDER;
+
   if (!folderPath) {
-    console.log('Usage: node gemini-scraper/index.js <folder_path> [from_day] [to_day]');
-    console.log('  folder_path : đường dẫn folder gốc chứa các kênh');
-    console.log('  from_day    : mục bắt đầu (mặc định: config)');
-    console.log('  to_day      : mục kết thúc (mặc định: config)');
-    console.log('  VD: node gemini-scraper/index.js "E:\\Videos" 1 3');
+    console.log('Usage: npm run scrape -- <folder> [from] [to]');
+    console.log('  VD: npm run scrape -- "E:\\Videos" 1 3');
     return;
   }
 
@@ -308,6 +307,25 @@ async function main() {
   console.log(`📋 ${results.length} videos processed`);
   console.log(`   ✅ Success: ${results.filter(r => r.title !== 'ERROR').length}`);
   console.log(`   ❌ Error: ${results.filter(r => r.title === 'ERROR').length}`);
+
+  // Ghi log lịch sử chạy
+  const logFile = 'scrape-history.log';
+  const now = new Date().toLocaleString();
+  const fromDay = config.FROM_DAY || 'all';
+  const toDay = config.TO_DAY || 'all';
+  const channels = [...new Set(results.map(r => {
+    // Lấy tên kênh từ folder path
+    const parts = r.folder.split(path.sep);
+    const kenhIdx = parts.findIndex(p => p.toLowerCase().includes('kênh') || p.toLowerCase().includes('kenh'));
+    return kenhIdx > -1 ? parts[kenhIdx] : 'unknown';
+  }))];
+  const successCount = results.filter(r => r.title !== 'ERROR').length;
+  const errorCount = results.filter(r => r.title === 'ERROR').length;
+
+  const logEntry = `[${now}] Folder: ${absPath} | Day: ${fromDay}-${toDay} | Kênh: ${channels.join(', ')} | Videos: ${results.length} (✅${successCount} ❌${errorCount})\n`;
+  
+  fs.appendFileSync(logFile, logEntry);
+  console.log(`📝 Log saved: ${logFile}`);
 }
 
 main().catch(e => {

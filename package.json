@@ -9,6 +9,7 @@
     "list-profiles": "node src/index.js --list-profiles",
     "generate": "node src/index.js --generate",
     "dry-run": "node src/index.js --dry-run",
+    "scrape": "node gemini-scraper/index.js",
     "app": "electron .",
     "build": "electron-builder --win",
     "build:portable": "electron-builder --win portable"
