@@ -194,8 +194,6 @@ async function waitAndParse(page, video, tabId) {
 
 async function main() {
   const args = process.argv.slice(2);
-  const folderPath = args[0];
-
   const folderPath = args[0] || config.DEFAULT_FOLDER;
 
   if (!folderPath) {
