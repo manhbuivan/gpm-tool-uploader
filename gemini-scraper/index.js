@@ -274,6 +274,43 @@ async function main() {
 
   browser.disconnect();
 
+  // Retry các video bị lỗi (1 lần)
+  const failedVideos = results.filter(r => r.title === 'ERROR');
+  if (failedVideos.length > 0) {
+    console.log(`\n═══ RETRY ${failedVideos.length} video lỗi ═══`);
+    const retryBrowser = await puppeteer.connect({ browserURL: config.CHROME_DEBUG_URL });
+
+    for (const failed of failedVideos) {
+      const video = videos.find(v => v.name === failed.video && v.folder === failed.folder);
+      if (!video) continue;
+
+      const tabId = 'R';
+      const page = await retryBrowser.newPage();
+      try {
+        log(tabId, `Retry: ${video.name}`);
+        await page.goto(config.GEM_URL, { waitUntil: 'networkidle2', timeout: 30000 });
+        await sleep(6000);
+
+        const uploaded = await uploadVideoToTab(page, video, tabId);
+        if (!uploaded) continue;
+
+        await clickSend(page, tabId);
+        const retryResult = await waitAndParse(page, video, tabId);
+
+        if (retryResult.title !== 'ERROR') {
+          // Thay thế kết quả lỗi bằng kết quả retry
+          const idx = results.indexOf(failed);
+          results[idx] = retryResult;
+        }
+      } catch (e) {
+        log(tabId, `❌ Retry failed: ${e.message}`);
+        await page.close().catch(() => {});
+      }
+    }
+
+    retryBrowser.disconnect();
+  }
+
   // Export Excel
   console.log('\n═══ Export Excel ═══');
   const rows = [['STT', 'title', 'description', 'profile', 'gio_dang', 'proxy', 'folder_video', 'video_name', 'result']];
