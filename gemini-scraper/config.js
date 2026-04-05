@@ -10,4 +10,3 @@ module.exports = {
   FROM_DAY: 1,
   TO_DAY: 3,
 };
-histo
