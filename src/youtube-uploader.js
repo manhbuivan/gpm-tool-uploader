@@ -14,14 +14,15 @@ async function connectBrowser(browserURL) {
   const browser = await puppeteer.connect({
     browserURL: browserURL,
     defaultViewport: null,
+    protocolTimeout: 120000, // 120s protocol timeout tránh Network.enable timeout
   });
 
   const pages = await browser.pages();
   const page = pages[0] || await browser.newPage();
 
   // Set timeout mặc định
-  page.setDefaultTimeout(60000);
-  page.setDefaultNavigationTimeout(60000);
+  page.setDefaultTimeout(90000);
+  page.setDefaultNavigationTimeout(90000);
 
   return { browser, page };
 }
@@ -294,12 +295,13 @@ async function uploadShort(params) {
 
     if (!titleFilled) {
       logger.warn(profileId, '⚠️ Không thể điền title tự động, thử phương pháp khác...');
-      // Fallback: dùng evaluate
+      // Fallback: dùng execCommand (tránh innerHTML TrustedHTML error)
       await page.evaluate((titleText) => {
         const textboxes = document.querySelectorAll('div#textbox[contenteditable="true"]');
         if (textboxes.length > 0) {
-          textboxes[0].innerHTML = '';
           textboxes[0].focus();
+          document.execCommand('selectAll', false, null);
+          document.execCommand('delete', false, null);
           document.execCommand('insertText', false, titleText);
         }
       }, title);
