@@ -128,8 +128,10 @@ async function processProfile(tasks, dryRun = false) {
  * @param {boolean} dryRun
  */
 async function runAll(dryRun = false) {
+  const startTime = Date.now();
   logger.banner('GPM YouTube Shorts Auto Upload');
   logger.log(`Mode: ${dryRun ? '🏃 DRY RUN' : '🚀 LIVE UPLOAD'}`);
+  logger.log(`⏱️ Bắt đầu: ${new Date().toLocaleString()}`);
   logger.log(`Excel: ${config.EXCEL_FILE}`);
 
   // Đọc tasks từ Excel
@@ -226,6 +228,12 @@ async function runAll(dryRun = false) {
   logger.log(`❌ Lỗi: ${errorCount}`);
   logger.log(`⏳ Chưa xử lý: ${remainCount}`);
   logger.log(`📄 Kết quả chi tiết: ${config.EXCEL_FILE} (cột result)`);
+
+  const elapsed = Math.round((Date.now() - startTime) / 1000);
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+  logger.log(`⏱️ Kết thúc: ${new Date().toLocaleString()}`);
+  logger.log(`⏱️ Tổng thời gian: ${mins} phút ${secs} giây`);
 }
 
 module.exports = {
