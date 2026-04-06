@@ -180,10 +180,14 @@ async function waitAndParse(page, video, tabId) {
     const item1 = clean.match(/ITEM 1[:\s]*(.+?)(?=ITEM 2)/s);
     const item2 = clean.match(/ITEM 2[:\s]*([\s\S]+?)(?=This video is|$)/s);
 
-    const title = item1 ? item1[1].trim() : '';
-    const description = item2 ? item2[1].trim() : '';
+    const title = item1 ? item1[1].trim() : 'RETRY_NEEDED';
+    const description = item2 ? item2[1].trim() : 'RETRY_NEEDED';
 
-    log(tabId, `✅ Done: "${title.substring(0, 60)}..."`);
+    if (!item1 || !item2) {
+      log(tabId, `⚠️ Parse không đầy đủ — title:${!!item1} desc:${!!item2}`);
+    } else {
+      log(tabId, `✅ Done: "${title.substring(0, 60)}..."`);
+    }
     return { video: video.name, folder: video.folder, title, description };
   } finally {
     await page.close().catch(() => {});
@@ -275,7 +279,7 @@ async function main() {
   browser.disconnect();
 
   // Retry các video bị lỗi (1 lần)
-  const failedVideos = results.filter(r => r.title === 'ERROR');
+  const failedVideos = results.filter(r => r.title === 'ERROR' || r.title === 'RETRY_NEEDED' || !r.title);
   if (failedVideos.length > 0) {
     console.log(`\n═══ RETRY ${failedVideos.length} video lỗi ═══`);
     const retryBrowser = await puppeteer.connect({ browserURL: config.CHROME_DEBUG_URL });
@@ -297,7 +301,7 @@ async function main() {
         await clickSend(page, tabId);
         const retryResult = await waitAndParse(page, video, tabId);
 
-        if (retryResult.title !== 'ERROR') {
+        if (retryResult.title !== 'ERROR' && retryResult.title !== 'RETRY_NEEDED' && retryResult.title) {
           // Thay thế kết quả lỗi bằng kết quả retry
           const idx = results.indexOf(failed);
           results[idx] = retryResult;
@@ -311,8 +315,9 @@ async function main() {
     retryBrowser.disconnect();
   }
 
-  // Export Excel
-  console.log('\n═══ Export Excel ═══');
+  // Export Excel — thêm timestamp tránh đè file cũ
+  const timestamp = new Date().toISOString().slice(0, 10); // 2026-04-05
+  const outputFile = config.OUTPUT_FILE.replace('.xlsx', `-${timestamp}.xlsx`);
   const rows = [['STT', 'title', 'description', 'profile', 'gio_dang', 'proxy', 'folder_video', 'video_name', 'result']];
   
   results.forEach((r, i) => {
@@ -336,9 +341,9 @@ async function main() {
     { wch: 20 }, { wch: 10 }, { wch: 40 }, { wch: 25 }, { wch: 15 },
   ];
   XLSX.utils.book_append_sheet(wb, ws, 'Schedule');
-  XLSX.writeFile(wb, config.OUTPUT_FILE);
+  XLSX.writeFile(wb, outputFile);
 
-  console.log(`✅ Exported: ${config.OUTPUT_FILE}`);
+  console.log(`✅ Exported: ${outputFile}`);
   console.log(`📋 ${results.length} videos processed`);
   console.log(`   ✅ Success: ${results.filter(r => r.title !== 'ERROR').length}`);
   console.log(`   ❌ Error: ${results.filter(r => r.title === 'ERROR').length}`);
