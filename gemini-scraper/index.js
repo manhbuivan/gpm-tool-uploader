@@ -181,7 +181,9 @@ async function waitAndParse(page, video, tabId) {
     const item2 = clean.match(/ITEM 2[:\s]*([\s\S]+?)(?=This video is|$)/s);
 
     const title = item1 ? item1[1].trim() : 'RETRY_NEEDED';
-    const description = item2 ? item2[1].trim() : 'RETRY_NEEDED';
+    const rawDesc = item2 ? item2[1].trim() : 'RETRY_NEEDED';
+    // Clean: thay nhieu dong trong thanh 1 xuong dong
+    const description = rawDesc.replace(/[\r\n]+/g, '\n').replace(/\n{2,}/g, '\n');
 
     if (!item1 || !item2) {
       log(tabId, `⚠️ Parse không đầy đủ — title:${!!item1} desc:${!!item2}`);

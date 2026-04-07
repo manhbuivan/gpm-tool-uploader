@@ -230,21 +230,54 @@ async function uploadShort(params) {
           return r;
         };
         let dateInput = null;
+        
+        // Cach 1: Tim trong ytcp-date-picker
         const pickers = queryAllDeep('ytcp-date-picker');
         for (const p of pickers) {
           const inp = p.querySelector('input') || (p.shadowRoot && p.shadowRoot.querySelector('input'));
           if (inp) { dateInput = inp; break; }
         }
+        
+        // Cach 2: Tim #datepicker-trigger input
+        if (!dateInput) {
+          const trigger = document.querySelector('#datepicker-trigger');
+          if (trigger) {
+            dateInput = trigger.querySelector('input') || trigger;
+          }
+        }
+        
+        // Cach 3: Tim input co aria-label date/ngay
         if (!dateInput) {
           for (const inp of queryAllDeep('input')) {
             const a = (inp.getAttribute('aria-label') || '').toLowerCase();
             if (a.includes('date') || a.includes('ng\u00E0y')) { dateInput = inp; break; }
           }
         }
+        
+        // Cach 4: Tim trong #schedule-date-time
+        if (!dateInput) {
+          const area = document.querySelector('#schedule-date-time') || document.querySelector('ytcp-video-visibility-select');
+          if (area) {
+            const inputs = area.querySelectorAll('input');
+            if (inputs.length > 0) dateInput = inputs[0]; // Input dau tien la date
+          }
+        }
+        
+        // Cach 5: Tim ytcp-text-dropdown-trigger co text ngay
+        if (!dateInput) {
+          const triggers = document.querySelectorAll('ytcp-text-dropdown-trigger');
+          for (const t of triggers) {
+            if (t.id === 'datepicker-trigger' || (t.textContent || '').match(/thg|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/i)) {
+              const r = t.getBoundingClientRect();
+              return { found: true, x: r.x + r.width / 2, y: r.y + r.height / 2, value: (t.textContent || '').trim(), method: 'trigger' };
+            }
+          }
+        }
+        
         if (!dateInput) return { found: false };
         dateInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
         const r = dateInput.getBoundingClientRect();
-        return { found: true, x: r.x + r.width / 2, y: r.y + r.height / 2, value: dateInput.value };
+        return { found: true, x: r.x + r.width / 2, y: r.y + r.height / 2, value: dateInput.value || '', method: 'input' };
       });
 
       logger.debug(profileId, '  Date input: ' + JSON.stringify(dateFound));
