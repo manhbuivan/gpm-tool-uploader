@@ -105,11 +105,8 @@ async function uploadShort(params) {
 
     // Title = textbox dau tien
     if (allTextboxes.length >= 1) {
-      await allTextboxes[0].click();
+      await allTextboxes[0].click({ clickCount: 3 }); // Triple click = select all trong textbox
       await actionDelay();
-      await page.keyboard.down('Control');
-      await page.keyboard.press('KeyA');
-      await page.keyboard.up('Control');
       await page.keyboard.press('Backspace');
       await actionDelay();
       await page.keyboard.type(title, { delay: Math.random() * 30 + 15 });
@@ -119,14 +116,18 @@ async function uploadShort(params) {
     }
     await actionDelay();
 
-    // Description = textbox thu 2
+    // Description = textbox thu 2 — dung evaluate de xoa text cu, tranh Ctrl+A select ca title
     if (allTextboxes.length >= 2) {
-      await allTextboxes[1].click();
+      // Xoa noi dung cu bang evaluate (chi xoa trong textbox nay)
+      await page.evaluate((idx) => {
+        const boxes = document.querySelectorAll('div#textbox[contenteditable="true"]');
+        if (boxes[idx]) {
+          boxes[idx].textContent = '';
+          boxes[idx].focus();
+        }
+      }, 1);
       await actionDelay();
-      await page.keyboard.down('Control');
-      await page.keyboard.press('KeyA');
-      await page.keyboard.up('Control');
-      await page.keyboard.press('Backspace');
+      await allTextboxes[1].click();
       await actionDelay();
       await page.keyboard.type(description, { delay: Math.random() * 25 + 10 });
       logger.debug(profileId, '  Description filled');
