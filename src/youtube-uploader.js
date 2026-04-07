@@ -220,7 +220,8 @@ async function uploadShort(params) {
 
     // Set date
     try {
-      const dateSet = await page.evaluate((newDate) => {
+      // Tim va click date input
+      const dateFound = await page.evaluate(() => {
         const queryAllDeep = (sel, root = document) => {
           let r = Array.from(root.querySelectorAll ? root.querySelectorAll(sel) : []);
           (root.querySelectorAll ? root.querySelectorAll('*') : []).forEach(c => {
@@ -241,36 +242,25 @@ async function uploadShort(params) {
           }
         }
         if (!dateInput) return { found: false };
-        
-        // Focus + clear + set value
         dateInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        dateInput.focus();
-        dateInput.click();
-        dateInput.value = newDate;
-        dateInput.dispatchEvent(new Event('input', { bubbles: true }));
-        dateInput.dispatchEvent(new Event('change', { bubbles: true }));
-        return { found: true, value: dateInput.value };
-      }, dateStr);
+        const r = dateInput.getBoundingClientRect();
+        return { found: true, x: r.x + r.width / 2, y: r.y + r.height / 2, value: dateInput.value };
+      });
 
-      logger.debug(profileId, '  Date set result: ' + JSON.stringify(dateSet));
-      
-      if (dateSet.found) {
-        // Press Enter de confirm
+      logger.debug(profileId, '  Date input: ' + JSON.stringify(dateFound));
+
+      if (dateFound.found) {
+        // Triple click de select all text trong input
+        await page.mouse.click(dateFound.x, dateFound.y, { clickCount: 3 });
+        await actionDelay();
+        // Type de de len text cu
+        await page.keyboard.type(dateStr, { delay: 50 });
+        await actionDelay();
         await page.keyboard.press('Enter');
         await actionDelay();
         await page.keyboard.press('Escape');
       } else {
-        // Fallback: keyboard type
-        logger.warn(profileId, 'Date input not found, trying keyboard...');
-        await page.keyboard.down('Control');
-        await page.keyboard.press('KeyA');
-        await page.keyboard.up('Control');
-        await page.keyboard.press('Backspace');
-        await actionDelay();
-        await page.keyboard.type(dateStr, { delay: 50 });
-        await page.keyboard.press('Enter');
-        await actionDelay();
-        await page.keyboard.press('Escape');
+        logger.warn(profileId, 'Date input not found');
       }
       logger.debug(profileId, '  Date set: ' + dateStr);
     } catch (e) {
