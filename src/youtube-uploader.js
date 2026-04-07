@@ -209,70 +209,49 @@ async function uploadShort(params) {
     logger.debug(profileId, '  Current step: ' + currentStep);
 
     // 13. Chon Schedule (Len lich)
+    // 13. Chon Schedule (Len lich) - click bang mouse that
     logger.info(profileId, 'Thiet lap Schedule...');
     
-    // YouTube Studio moi: "Len lich" la section rieng, click de mo form date/time
-    const scheduleClicked = await page.evaluate(() => {
-      // Cach 1: Tim section "Len lich" bang text
+    const schedulePos = await page.evaluate(() => {
       const allElements = document.querySelectorAll('*');
       for (const el of allElements) {
-        const text = (el.textContent || '').trim();
-        const directText = el.childNodes.length > 0 ? 
+        const directText = el.childNodes.length > 0 ?
           Array.from(el.childNodes).filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join('') : '';
-        
-        // Tim element co text chinh xac "Len lich" hoac "Schedule"
         if ((directText === 'L\u00ean l\u1ECBch' || directText === 'Schedule') && el.offsetWidth > 0) {
-          // Click parent container (section) de mo
-          const clickTarget = el.closest('[class*="schedule"]') || el.closest('[class*="section"]') || el.parentElement || el;
-          clickTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          clickTarget.click();
-          return 'text:' + directText;
+          const target = el.closest('[class*=schedule]') || el.parentElement || el;
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const r = target.getBoundingClientRect();
+          return { found: true, x: r.x + r.width / 2, y: r.y + r.height / 2 };
         }
       }
-      
-      // Cach 2: Tim bang #schedule-radio-button (YouTube cu)
       const btn = document.querySelector('#schedule-radio-button');
-      if (btn) { btn.scrollIntoView({ behavior: 'smooth', block: 'center' }); btn.click(); return 'radio'; }
-      
-      // Cach 3: Tim radio co name SCHEDULE
-      const radios = document.querySelectorAll('tp-yt-paper-radio-button');
-      for (const r of radios) {
-        const name = (r.getAttribute('name') || '').toUpperCase();
-        if (name === 'SCHEDULE') { r.scrollIntoView({ behavior: 'smooth', block: 'center' }); r.click(); return 'radio-name'; }
+      if (btn) {
+        btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const r = btn.getBoundingClientRect();
+        return { found: true, x: r.x + r.width/2, y: r.y + r.height/2 };
       }
-      
-      // Cach 4: Tim div/section chua "Len lich" va co chevron/dropdown
-      const sections = document.querySelectorAll('div, section');
-      for (const s of sections) {
-        if (s.children.length <= 5 && s.offsetWidth > 200) {
-          const t = (s.textContent || '').trim();
-          if ((t.startsWith('L\u00ean l\u1ECBch') || t.startsWith('Schedule')) && t.length < 200) {
-            s.scrollIntoView({ behavior: 'smooth', block: 'center' }); s.click(); return 'section';
-          }
-        }
-      }
-      
-      return false;
+      return { found: false };
     });
-    logger.debug(profileId, '  Schedule clicked: ' + scheduleClicked);
-    await actionDelay();
-    await sleepWithLog(2000, 'Doi form schedule');
-
-    // Doi date picker xuat hien (toi da 15s)
-    for (let w = 0; w < 7; w++) {
-      const hasDatePicker = await page.evaluate(() => {
-        // Tim input co value chua pattern ngay (thg, /)
+    
+    if (schedulePos.found) {
+      await page.mouse.click(schedulePos.x, schedulePos.y);
+      logger.debug(profileId, '  Schedule clicked via mouse');
+    } else {
+      logger.warn(profileId, 'Schedule button not found');
+    }
+    
+    await sleepWithLog(3000, 'Doi form schedule');
+    for (let w = 0; w < 6; w++) {
+      const hasInputs = await page.evaluate(() => {
         const inputs = document.querySelectorAll('input');
         for (const inp of inputs) {
-          if (inp.offsetWidth > 0 && /thg|\/\d{4}/.test(inp.value)) return true;
+          if (inp.offsetWidth > 0 && (inp.id === 'text-input' || /^\d{1,2}:\d{2}$/.test(inp.value.trim()))) return true;
         }
-        return !!document.querySelector('#datepicker-trigger') || 
-               !!document.querySelector('ytcp-date-picker');
+        return false;
       });
-      if (hasDatePicker) break;
-      await sleepWithLog(2000, 'Doi date picker render...');
+      if (hasInputs) { logger.debug(profileId, '  Date/time inputs found!'); break; }
+      await sleepWithLog(2000, 'Doi date/time render...');
     }
-
     // 14. Set date + time
     const pad2 = n => String(n).padStart(2, '0');
     const viMonths = ['thg 1','thg 2','thg 3','thg 4','thg 5','thg 6','thg 7','thg 8','thg 9','thg 10','thg 11','thg 12'];
