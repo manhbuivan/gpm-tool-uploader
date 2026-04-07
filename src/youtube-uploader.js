@@ -210,17 +210,35 @@ async function uploadShort(params) {
 
     // 13. Chon Schedule
     logger.info(profileId, 'Thiet lap Schedule...');
-    await page.evaluate(() => {
+    
+    // Debug: dump radio buttons
+    const radioDebug = await page.evaluate(() => {
+      const radios = Array.from(document.querySelectorAll('tp-yt-paper-radio-button'));
+      return radios.map(r => ({
+        name: r.getAttribute('name') || '',
+        id: r.id || '',
+        text: (r.textContent || '').trim().substring(0, 40),
+        checked: r.hasAttribute('checked') || r.getAttribute('aria-checked') === 'true',
+        w: r.offsetWidth,
+      }));
+    });
+    logger.debug(profileId, '  Radio buttons: ' + JSON.stringify(radioDebug));
+    
+    // Click schedule radio
+    const scheduleClicked = await page.evaluate(() => {
       const btn = document.querySelector('#schedule-radio-button');
-      if (btn) { btn.scrollIntoView({ behavior: 'smooth', block: 'center' }); btn.click(); return; }
+      if (btn) { btn.scrollIntoView({ behavior: 'smooth', block: 'center' }); btn.click(); return 'id'; }
       const radios = document.querySelectorAll('tp-yt-paper-radio-button');
       for (const r of radios) {
+        const name = (r.getAttribute('name') || '').toUpperCase();
         const t = (r.textContent || '').toLowerCase();
-        if (t.includes('schedule') || (t.includes('l\u00ean') && t.includes('l\u1ECBch'))) {
-          r.scrollIntoView({ behavior: 'smooth', block: 'center' }); r.click(); return;
+        if (name === 'SCHEDULE' || t.includes('schedule') || (t.includes('l\u00ean') && t.includes('l\u1ECBch'))) {
+          r.scrollIntoView({ behavior: 'smooth', block: 'center' }); r.click(); return 'text:' + t.substring(0, 30);
         }
       }
+      return false;
     });
+    logger.debug(profileId, '  Schedule clicked: ' + scheduleClicked);
     await actionDelay();
     await sleepWithLog(2000, 'Doi form schedule');
 
