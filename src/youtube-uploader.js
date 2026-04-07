@@ -383,7 +383,15 @@ async function uploadShort(params) {
           }
         }
         
-        // Cach 6: Tim ytcp-text-dropdown-trigger co text ngay
+        // Cach 6: Tim input#text-input (YouTube Studio moi)
+        if (!dateInput) {
+          const ti = document.querySelector('#text-input');
+          if (ti && ti.offsetWidth > 0 && ti.id !== 'query-input') {
+            dateInput = ti;
+          }
+        }
+        
+        // Cach 7: Tim ytcp-text-dropdown-trigger co text ngay
         if (!dateInput) {
           const triggers = document.querySelectorAll('ytcp-text-dropdown-trigger');
           for (const t of triggers) {
@@ -427,8 +435,8 @@ async function uploadShort(params) {
       const timeInputFound = await page.evaluate((newTime) => {
         const inputs = document.querySelectorAll('input');
         for (const inp of inputs) {
-          // Time input co value dang HH:MM
-          if (inp.offsetWidth > 0 && /^\d{1,2}:\d{2}$/.test(inp.value.trim())) {
+          // Time input: visible, value dang HH:MM, khong phai query-input hay text-input
+          if (inp.offsetWidth > 0 && /^\d{1,2}:\d{2}$/.test(inp.value.trim()) && inp.id !== 'query-input' && inp.id !== 'text-input') {
             inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
             const r = inp.getBoundingClientRect();
             return { found: true, x: r.x + r.width / 2, y: r.y + r.height / 2, value: inp.value, method: 'direct-input' };
