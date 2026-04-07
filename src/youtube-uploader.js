@@ -30,7 +30,9 @@ async function takeErrorScreenshot(page, profileId, step) {
 }
 
 async function uploadShort(params) {
-  const { browserURL, profileId, videoPath, title, description, scheduleDate, dryRun } = params;
+  const { browserURL, profileId, videoPath, title, description: rawDesc, scheduleDate, dryRun } = params;
+  // Clean description: thay nhieu dong trong thanh 1 xuong dong
+  const description = (rawDesc || '').replace(/[\r\n]+/g, '\n').replace(/\n{2,}/g, '\n').trim();
 
   if (!fs.existsSync(videoPath)) {
     throw new Error('File video khong ton tai: ' + videoPath);
