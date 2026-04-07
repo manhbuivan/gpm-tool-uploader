@@ -117,8 +117,7 @@ async function uploadShort(params) {
     await actionDelay();
 
     // Description = textbox thu 2 — dung evaluate de xoa text cu, tranh Ctrl+A select ca title
-    if (allTextboxes.length >= 2) {
-      // Xoa noi dung cu bang evaluate (chi xoa trong textbox nay)
+    if (allTextboxes.length >= 2 && description && description.trim()) {
       await page.evaluate((idx) => {
         const boxes = document.querySelectorAll('div#textbox[contenteditable="true"]');
         if (boxes[idx]) {
@@ -131,7 +130,7 @@ async function uploadShort(params) {
       await actionDelay();
       await page.keyboard.type(description, { delay: Math.random() * 25 + 10 });
       logger.debug(profileId, '  Description filled');
-    } else {
+    } else if (allTextboxes.length < 2) {
       logger.warn(profileId, 'Khong tim thay textbox description');
     }
     await actionDelay();
@@ -221,7 +220,7 @@ async function uploadShort(params) {
 
     // Set date
     try {
-      const dateFound = await page.evaluate(() => {
+      const dateSet = await page.evaluate((newDate) => {
         const queryAllDeep = (sel, root = document) => {
           let r = Array.from(root.querySelectorAll ? root.querySelectorAll(sel) : []);
           (root.querySelectorAll ? root.querySelectorAll('*') : []).forEach(c => {
@@ -242,24 +241,37 @@ async function uploadShort(params) {
           }
         }
         if (!dateInput) return { found: false };
+        
+        // Focus + clear + set value
         dateInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        dateInput.focus(); dateInput.click();
-        if (typeof dateInput.select === 'function') dateInput.select();
-        return { found: true };
-      });
+        dateInput.focus();
+        dateInput.click();
+        dateInput.value = newDate;
+        dateInput.dispatchEvent(new Event('input', { bubbles: true }));
+        dateInput.dispatchEvent(new Event('change', { bubbles: true }));
+        return { found: true, value: dateInput.value };
+      }, dateStr);
 
-      if (!dateFound.found) logger.warn(profileId, 'Khong tim thay date input');
-
-      await actionDelay();
-      await page.keyboard.down('Control');
-      await page.keyboard.press('KeyA');
-      await page.keyboard.up('Control');
-      await page.keyboard.press('Backspace');
-      await actionDelay();
-      await page.keyboard.type(dateStr, { delay: 50 });
-      await page.keyboard.press('Enter');
-      await actionDelay();
-      await page.keyboard.press('Escape');
+      logger.debug(profileId, '  Date set result: ' + JSON.stringify(dateSet));
+      
+      if (dateSet.found) {
+        // Press Enter de confirm
+        await page.keyboard.press('Enter');
+        await actionDelay();
+        await page.keyboard.press('Escape');
+      } else {
+        // Fallback: keyboard type
+        logger.warn(profileId, 'Date input not found, trying keyboard...');
+        await page.keyboard.down('Control');
+        await page.keyboard.press('KeyA');
+        await page.keyboard.up('Control');
+        await page.keyboard.press('Backspace');
+        await actionDelay();
+        await page.keyboard.type(dateStr, { delay: 50 });
+        await page.keyboard.press('Enter');
+        await actionDelay();
+        await page.keyboard.press('Escape');
+      }
       logger.debug(profileId, '  Date set: ' + dateStr);
     } catch (e) {
       logger.warn(profileId, 'Loi set date: ' + e.message);
