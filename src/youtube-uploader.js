@@ -220,6 +220,22 @@ async function uploadShort(params) {
 
     // Set date
     try {
+      // Debug: dump schedule area DOM
+      const scheduleDebug = await page.evaluate(() => {
+        const area = document.querySelector('#schedule-date-time') || document.querySelector('ytcp-video-visibility-select');
+        if (!area) return { areaFound: false };
+        const inputs = Array.from(area.querySelectorAll('input')).map(i => ({
+          id: i.id, type: i.type, value: i.value, aria: i.getAttribute('aria-label') || '', w: i.offsetWidth
+        }));
+        const triggers = Array.from(area.querySelectorAll('ytcp-text-dropdown-trigger')).map(t => ({
+          id: t.id, text: (t.textContent || '').trim().substring(0, 40), w: t.offsetWidth
+        }));
+        const allTags = Array.from(area.querySelectorAll('*')).slice(0, 50).map(e => e.tagName.toLowerCase());
+        const uniqueTags = [...new Set(allTags)];
+        return { areaFound: true, inputs, triggers, tags: uniqueTags };
+      });
+      logger.debug(profileId, '  Schedule DOM: ' + JSON.stringify(scheduleDebug));
+
       // Tim va click date input
       const dateFound = await page.evaluate(() => {
         const queryAllDeep = (sel, root = document) => {
