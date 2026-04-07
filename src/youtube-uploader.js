@@ -168,21 +168,45 @@ async function uploadShort(params) {
     for (let step = 1; step <= 3; step++) {
       const names = ['Video elements', 'Checks', 'Visibility'];
       logger.info(profileId, 'Next -> ' + names[step - 1]);
+      
+      let nextClicked = false;
       try {
         await page.waitForSelector('#next-button', { visible: true, timeout: 8000 });
         await page.click('#next-button');
+        nextClicked = true;
       } catch (e) {
-        await page.evaluate(() => {
+        // Fallback
+        nextClicked = await page.evaluate(() => {
           const btns = document.querySelectorAll('ytcp-button');
           for (const b of btns) {
             const t = (b.textContent || '').toLowerCase().trim();
-            if (t === 'next' || t === 'tiếp theo' || t === 'tiếp') { b.click(); return; }
+            if (t === 'next' || t.includes('ti\u1EBFp')) { b.click(); return true; }
           }
+          return false;
         });
       }
+      
+      logger.debug(profileId, '  Next clicked: ' + nextClicked);
       await actionDelay();
       await sleepWithLog(2000, 'Doi buoc ' + names[step - 1]);
     }
+    
+    // Check dang o step nao
+    const currentStep = await page.evaluate(() => {
+      const dialog = document.querySelector('ytcp-uploads-dialog');
+      if (!dialog) return 'no-dialog';
+      // Tim step hien tai
+      const steps = document.querySelectorAll('ytcp-uploads-dialog [step-title]');
+      for (const s of steps) {
+        if (s.getAttribute('active') !== null) return s.getAttribute('step-title') || 'unknown';
+      }
+      // Fallback: check text
+      const body = document.body.innerText;
+      if (body.includes('Visibility') || body.includes('Ch\u1EBF \u0111\u1ED9 hi\u1EC3n th\u1ECB')) return 'visibility';
+      if (body.includes('Checks') || body.includes('Ki\u1EC3m tra')) return 'checks';
+      return 'unknown';
+    });
+    logger.debug(profileId, '  Current step: ' + currentStep);
 
     // 13. Chon Schedule
     logger.info(profileId, 'Thiet lap Schedule...');
