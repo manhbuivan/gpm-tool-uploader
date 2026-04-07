@@ -132,7 +132,7 @@ async function uploadShort(params) {
 
     // 2. Mở YouTube Studio
     logger.info(profileId, '📺 Đang mở YouTube Studio...');
-    await page.goto('https://studio.youtube.com', { waitUntil: 'networkidle2', timeout: 60000 });
+    await page.goto('https://studio.youtube.com', { waitUntil: 'networkidle2', timeout: 120000 });
     await sleepWithLog(3000, 'Đợi YouTube Studio load');
 
     // 3. Click nút CREATE (Upload)
@@ -310,10 +310,6 @@ async function uploadShort(params) {
     await actionDelay();
 
     // 8. Điền Description
-    const descSelectors = [
-      'div#textbox[contenteditable="true"]',
-    ];
-
     try {
       const textboxes = await page.$$('div#textbox[contenteditable="true"]');
       // Description thường là textbox thứ 2
