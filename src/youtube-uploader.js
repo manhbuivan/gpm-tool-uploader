@@ -200,6 +200,18 @@ async function uploadShort(params) {
     await actionDelay();
     await sleepWithLog(2000, 'Doi form schedule');
 
+    // Doi date picker xuat hien (toi da 10s)
+    for (let w = 0; w < 5; w++) {
+      const hasDatePicker = await page.evaluate(() => {
+        return !!document.querySelector('#datepicker-trigger') || 
+               !!document.querySelector('ytcp-date-picker') ||
+               !!document.querySelector('input[aria-label*="date" i]') ||
+               !!document.querySelector('input[aria-label*="ngày" i]');
+      });
+      if (hasDatePicker) break;
+      await sleepWithLog(2000, 'Doi date picker render...');
+    }
+
     // 14. Set date + time
     const pad2 = n => String(n).padStart(2, '0');
     const viMonths = ['thg 1','thg 2','thg 3','thg 4','thg 5','thg 6','thg 7','thg 8','thg 9','thg 10','thg 11','thg 12'];
@@ -222,17 +234,25 @@ async function uploadShort(params) {
     try {
       // Debug: dump schedule area DOM
       const scheduleDebug = await page.evaluate(() => {
-        const area = document.querySelector('#schedule-date-time') || document.querySelector('ytcp-video-visibility-select');
-        if (!area) return { areaFound: false };
-        const inputs = Array.from(area.querySelectorAll('input')).map(i => ({
-          id: i.id, type: i.type, value: i.value, aria: i.getAttribute('aria-label') || '', w: i.offsetWidth
-        }));
-        const triggers = Array.from(area.querySelectorAll('ytcp-text-dropdown-trigger')).map(t => ({
+        // Tim tat ca input va trigger tren toan page
+        const allInputs = Array.from(document.querySelectorAll('input')).map(i => ({
+          id: i.id, type: i.type, value: (i.value || '').substring(0, 30), 
+          aria: (i.getAttribute('aria-label') || '').substring(0, 30), w: i.offsetWidth
+        })).filter(i => i.w > 0);
+        
+        const allTriggers = Array.from(document.querySelectorAll('ytcp-text-dropdown-trigger, #datepicker-trigger')).map(t => ({
           id: t.id, text: (t.textContent || '').trim().substring(0, 40), w: t.offsetWidth
-        }));
-        const allTags = Array.from(area.querySelectorAll('*')).slice(0, 50).map(e => e.tagName.toLowerCase());
-        const uniqueTags = [...new Set(allTags)];
-        return { areaFound: true, inputs, triggers, tags: uniqueTags };
+        })).filter(t => t.w > 0);
+        
+        const datePickers = document.querySelectorAll('ytcp-date-picker');
+        const timePickers = document.querySelectorAll('ytcp-time-of-day-picker, ytcp-time-of-day-picker-v2');
+        
+        return { 
+          inputs: allInputs, 
+          triggers: allTriggers, 
+          datePickers: datePickers.length,
+          timePickers: timePickers.length,
+        };
       });
       logger.debug(profileId, '  Schedule DOM: ' + JSON.stringify(scheduleDebug));
 
