@@ -211,9 +211,13 @@ async function uploadShort(params) {
     mTemp = Math.round(mTemp / 15) * 15;
     if (mTemp === 60) { mTemp = 0; hTemp += 1; }
     if (hTemp === 24) { hTemp = 0; }
-    const timeStr = pad2(hTemp) + ':' + pad2(mTemp);
+    const timeStr24 = pad2(hTemp) + ':' + pad2(mTemp);
+    // 12h format cho YouTube VN (SA = sang, CH = chieu)
+    const ampm = hTemp >= 12 ? 'CH' : 'SA';
+    let h12 = hTemp % 12; if (h12 === 0) h12 = 12;
+    const timeStr12 = pad2(h12) + ':' + pad2(mTemp) + ' ' + ampm;
 
-    logger.info(profileId, '  Date: ' + dateStr + ' | Time: ' + timeStr);
+    logger.info(profileId, '  Date: ' + dateStr + ' | Time: ' + timeStr24 + ' (' + timeStr12 + ')');
 
     // Set date
     try {
@@ -292,7 +296,7 @@ async function uploadShort(params) {
 
       await sleepWithLog(2000, 'Doi dropdown time');
 
-      const timeSelected = await page.evaluate((target) => {
+      const timeSelected = await page.evaluate((t24, t12) => {
         const queryAllDeep = (sel, root = document) => {
           let r = Array.from(root.querySelectorAll ? root.querySelectorAll(sel) : []);
           (root.querySelectorAll ? root.querySelectorAll('*') : []).forEach(c => {
@@ -301,31 +305,37 @@ async function uploadShort(params) {
           return r;
         };
         const norm = s => s.replace(/\s+/g, ' ').trim().toUpperCase();
-        const t = norm(target);
+        const targets = [norm(t24), norm(t12)];
         const opts = queryAllDeep('tp-yt-paper-item').filter(el => el.offsetWidth > 0 && /\d{1,2}:\d{2}/.test((el.textContent||'').trim()));
         for (const o of opts) {
-          if (norm(o.textContent) === t) { o.scrollIntoView({behavior:'smooth',block:'center'}); o.click(); return { found: true }; }
+          const ot = norm(o.textContent);
+          if (targets.includes(ot)) { o.scrollIntoView({behavior:'smooth',block:'center'}); o.click(); return { found: true, clicked: ot }; }
         }
+        // Flexible match: bo leading zero, normalize AM/PM/SA/CH
         for (const o of opts) {
-          const a = norm(o.textContent).replace(/^0/,'');
-          const b = t.replace(/^0/,'');
-          if (a === b) { o.scrollIntoView({behavior:'smooth',block:'center'}); o.click(); return { found: true }; }
+          const ot = norm(o.textContent).replace(/^0/,'').replace(/\s*(AM|PM|SA|CH)/,' $1');
+          for (const tgt of targets) {
+            const tt = tgt.replace(/^0/,'').replace(/\s*(AM|PM|SA|CH)/,' $1');
+            if (ot === tt) { o.scrollIntoView({behavior:'smooth',block:'center'}); o.click(); return { found: true, clicked: norm(o.textContent) }; }
+          }
         }
-        return { found: false, count: opts.length };
-      }, timeStr);
+        const sample = opts.slice(0, 10).map(o => (o.textContent||'').trim());
+        return { found: false, count: opts.length, sample };
+      }, timeStr24, timeStr12);
 
       if (!timeSelected.found) {
+        logger.warn(profileId, 'Time not found in dropdown: ' + JSON.stringify(timeSelected));
         await page.keyboard.down('Control');
         await page.keyboard.press('KeyA');
         await page.keyboard.up('Control');
         await page.keyboard.press('Backspace');
         await actionDelay();
-        await page.keyboard.type(timeStr, { delay: 50 });
+        await page.keyboard.type(timeStr24, { delay: 50 });
         await page.keyboard.press('Enter');
       }
       await actionDelay();
       await page.keyboard.press('Escape');
-      logger.debug(profileId, '  Time set: ' + timeStr);
+      logger.debug(profileId, '  Time set: ' + timeStr24);
     } catch (e) {
       logger.warn(profileId, 'Loi set time: ' + e.message);
     }
