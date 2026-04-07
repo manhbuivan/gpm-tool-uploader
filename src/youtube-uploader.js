@@ -390,10 +390,15 @@ async function uploadShort(params) {
       logger.debug(profileId, '  Date input: ' + JSON.stringify(dateFound));
 
       if (dateFound.found) {
-        // Triple click de select all text trong input
-        await page.mouse.click(dateFound.x, dateFound.y, { clickCount: 3 });
+        // Click vao input
+        await page.mouse.click(dateFound.x, dateFound.y);
         await actionDelay();
-        // Type de de len text cu
+        // Ctrl+A select all trong input dang focus
+        await page.keyboard.down('Control');
+        await page.keyboard.press('KeyA');
+        await page.keyboard.up('Control');
+        await actionDelay();
+        // Type de len text cu
         await page.keyboard.type(dateStr, { delay: 50 });
         await actionDelay();
         await page.keyboard.press('Enter');
