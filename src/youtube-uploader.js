@@ -208,47 +208,66 @@ async function uploadShort(params) {
     });
     logger.debug(profileId, '  Current step: ' + currentStep);
 
-    // 13. Chon Schedule
+    // 13. Chon Schedule (Len lich)
     logger.info(profileId, 'Thiet lap Schedule...');
     
-    // Debug: dump radio buttons
-    const radioDebug = await page.evaluate(() => {
-      const radios = Array.from(document.querySelectorAll('tp-yt-paper-radio-button'));
-      return radios.map(r => ({
-        name: r.getAttribute('name') || '',
-        id: r.id || '',
-        text: (r.textContent || '').trim().substring(0, 40),
-        checked: r.hasAttribute('checked') || r.getAttribute('aria-checked') === 'true',
-        w: r.offsetWidth,
-      }));
-    });
-    logger.debug(profileId, '  Radio buttons: ' + JSON.stringify(radioDebug));
-    
-    // Click schedule radio
+    // YouTube Studio moi: "Len lich" la section rieng, click de mo form date/time
     const scheduleClicked = await page.evaluate(() => {
+      // Cach 1: Tim section "Len lich" bang text
+      const allElements = document.querySelectorAll('*');
+      for (const el of allElements) {
+        const text = (el.textContent || '').trim();
+        const directText = el.childNodes.length > 0 ? 
+          Array.from(el.childNodes).filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join('') : '';
+        
+        // Tim element co text chinh xac "Len lich" hoac "Schedule"
+        if ((directText === 'L\u00ean l\u1ECBch' || directText === 'Schedule') && el.offsetWidth > 0) {
+          // Click parent container (section) de mo
+          const clickTarget = el.closest('[class*="schedule"]') || el.closest('[class*="section"]') || el.parentElement || el;
+          clickTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          clickTarget.click();
+          return 'text:' + directText;
+        }
+      }
+      
+      // Cach 2: Tim bang #schedule-radio-button (YouTube cu)
       const btn = document.querySelector('#schedule-radio-button');
-      if (btn) { btn.scrollIntoView({ behavior: 'smooth', block: 'center' }); btn.click(); return 'id'; }
+      if (btn) { btn.scrollIntoView({ behavior: 'smooth', block: 'center' }); btn.click(); return 'radio'; }
+      
+      // Cach 3: Tim radio co name SCHEDULE
       const radios = document.querySelectorAll('tp-yt-paper-radio-button');
       for (const r of radios) {
         const name = (r.getAttribute('name') || '').toUpperCase();
-        const t = (r.textContent || '').toLowerCase();
-        if (name === 'SCHEDULE' || t.includes('schedule') || (t.includes('l\u00ean') && t.includes('l\u1ECBch'))) {
-          r.scrollIntoView({ behavior: 'smooth', block: 'center' }); r.click(); return 'text:' + t.substring(0, 30);
+        if (name === 'SCHEDULE') { r.scrollIntoView({ behavior: 'smooth', block: 'center' }); r.click(); return 'radio-name'; }
+      }
+      
+      // Cach 4: Tim div/section chua "Len lich" va co chevron/dropdown
+      const sections = document.querySelectorAll('div, section');
+      for (const s of sections) {
+        if (s.children.length <= 5 && s.offsetWidth > 200) {
+          const t = (s.textContent || '').trim();
+          if ((t.startsWith('L\u00ean l\u1ECBch') || t.startsWith('Schedule')) && t.length < 200) {
+            s.scrollIntoView({ behavior: 'smooth', block: 'center' }); s.click(); return 'section';
+          }
         }
       }
+      
       return false;
     });
     logger.debug(profileId, '  Schedule clicked: ' + scheduleClicked);
     await actionDelay();
     await sleepWithLog(2000, 'Doi form schedule');
 
-    // Doi date picker xuat hien (toi da 10s)
-    for (let w = 0; w < 5; w++) {
+    // Doi date picker xuat hien (toi da 15s)
+    for (let w = 0; w < 7; w++) {
       const hasDatePicker = await page.evaluate(() => {
+        // Tim input co value chua pattern ngay (thg, /)
+        const inputs = document.querySelectorAll('input');
+        for (const inp of inputs) {
+          if (inp.offsetWidth > 0 && /thg|\/\d{4}/.test(inp.value)) return true;
+        }
         return !!document.querySelector('#datepicker-trigger') || 
-               !!document.querySelector('ytcp-date-picker') ||
-               !!document.querySelector('input[aria-label*="date" i]') ||
-               !!document.querySelector('input[aria-label*="ngày" i]');
+               !!document.querySelector('ytcp-date-picker');
       });
       if (hasDatePicker) break;
       await sleepWithLog(2000, 'Doi date picker render...');
@@ -354,7 +373,17 @@ async function uploadShort(params) {
           }
         }
         
-        // Cach 5: Tim ytcp-text-dropdown-trigger co text ngay
+        // Cach 5: Tim input co value chua "thg" (date hien tai)
+        if (!dateInput) {
+          const allInputs = document.querySelectorAll('input');
+          for (const inp of allInputs) {
+            if (inp.offsetWidth > 0 && /thg/.test(inp.value)) {
+              dateInput = inp; break;
+            }
+          }
+        }
+        
+        // Cach 6: Tim ytcp-text-dropdown-trigger co text ngay
         if (!dateInput) {
           const triggers = document.querySelectorAll('ytcp-text-dropdown-trigger');
           for (const t of triggers) {
@@ -394,73 +423,84 @@ async function uploadShort(params) {
 
     // Set time
     try {
-      let timePickerOpened = false;
-      timePickerOpened = await page.evaluate(() => {
-        const queryAllDeep = (sel, root = document) => {
-          let r = Array.from(root.querySelectorAll ? root.querySelectorAll(sel) : []);
-          (root.querySelectorAll ? root.querySelectorAll('*') : []).forEach(c => {
-            if (c.shadowRoot) r = r.concat(queryAllDeep(sel, c.shadowRoot));
-          });
-          return r;
-        };
-        const triggers = queryAllDeep('ytcp-text-dropdown-trigger');
-        for (const t of triggers) {
-          if (/\d{1,2}:\d{2}/.test((t.textContent || '').trim()) && t.offsetWidth > 0) {
-            t.scrollIntoView({ behavior: 'smooth', block: 'center' }); t.click(); return true;
+      // Tim time input truc tiep (YouTube Studio moi dung input text)
+      const timeInputFound = await page.evaluate((newTime) => {
+        const inputs = document.querySelectorAll('input');
+        for (const inp of inputs) {
+          // Time input co value dang HH:MM
+          if (inp.offsetWidth > 0 && /^\d{1,2}:\d{2}$/.test(inp.value.trim())) {
+            inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const r = inp.getBoundingClientRect();
+            return { found: true, x: r.x + r.width / 2, y: r.y + r.height / 2, value: inp.value, method: 'direct-input' };
           }
         }
-        return false;
-      });
-
-      if (!timePickerOpened) {
-        await page.keyboard.press('Tab');
-        await actionDelay();
-        await page.keyboard.press('Tab');
-        await actionDelay();
-        await page.keyboard.press('Enter');
-      }
-
-      await sleepWithLog(2000, 'Doi dropdown time');
-
-      const timeSelected = await page.evaluate((t24, t12) => {
-        const queryAllDeep = (sel, root = document) => {
-          let r = Array.from(root.querySelectorAll ? root.querySelectorAll(sel) : []);
-          (root.querySelectorAll ? root.querySelectorAll('*') : []).forEach(c => {
-            if (c.shadowRoot) r = r.concat(queryAllDeep(sel, c.shadowRoot));
-          });
-          return r;
-        };
-        const norm = s => s.replace(/\s+/g, ' ').trim().toUpperCase();
-        const targets = [norm(t24), norm(t12)];
-        const opts = queryAllDeep('tp-yt-paper-item').filter(el => el.offsetWidth > 0 && /\d{1,2}:\d{2}/.test((el.textContent||'').trim()));
-        for (const o of opts) {
-          const ot = norm(o.textContent);
-          if (targets.includes(ot)) { o.scrollIntoView({behavior:'smooth',block:'center'}); o.click(); return { found: true, clicked: ot }; }
-        }
-        // Flexible match: bo leading zero, normalize AM/PM/SA/CH
-        for (const o of opts) {
-          const ot = norm(o.textContent).replace(/^0/,'').replace(/\s*(AM|PM|SA|CH)/,' $1');
-          for (const tgt of targets) {
-            const tt = tgt.replace(/^0/,'').replace(/\s*(AM|PM|SA|CH)/,' $1');
-            if (ot === tt) { o.scrollIntoView({behavior:'smooth',block:'center'}); o.click(); return { found: true, clicked: norm(o.textContent) }; }
-          }
-        }
-        const sample = opts.slice(0, 10).map(o => (o.textContent||'').trim());
-        return { found: false, count: opts.length, sample };
-      }, timeStr24, timeStr12);
-
-      if (!timeSelected.found) {
-        logger.warn(profileId, 'Time not found in dropdown: ' + JSON.stringify(timeSelected));
-        await page.keyboard.down('Control');
-        await page.keyboard.press('KeyA');
-        await page.keyboard.up('Control');
-        await page.keyboard.press('Backspace');
+        return { found: false };
+      }, timeStr24);
+      
+      logger.debug(profileId, '  Time input: ' + JSON.stringify(timeInputFound));
+      
+      if (timeInputFound.found) {
+        // Triple click + type de len
+        await page.mouse.click(timeInputFound.x, timeInputFound.y, { clickCount: 3 });
         await actionDelay();
         await page.keyboard.type(timeStr24, { delay: 50 });
         await page.keyboard.press('Enter');
+        await actionDelay();
+        await page.keyboard.press('Escape');
+      } else {
+        // Fallback: tim dropdown trigger
+        let timePickerOpened = false;
+        timePickerOpened = await page.evaluate(() => {
+          const queryAllDeep = (sel, root = document) => {
+            let r = Array.from(root.querySelectorAll ? root.querySelectorAll(sel) : []);
+            (root.querySelectorAll ? root.querySelectorAll('*') : []).forEach(c => {
+              if (c.shadowRoot) r = r.concat(queryAllDeep(sel, c.shadowRoot));
+            });
+            return r;
+          };
+          const triggers = queryAllDeep('ytcp-text-dropdown-trigger');
+          for (const t of triggers) {
+            if (/\d{1,2}:\d{2}/.test((t.textContent || '').trim()) && t.offsetWidth > 0) {
+              t.scrollIntoView({ behavior: 'smooth', block: 'center' }); t.click(); return true;
+            }
+          }
+          return false;
+        });
+
+        if (!timePickerOpened) {
+          await page.keyboard.press('Tab');
+          await actionDelay();
+          await page.keyboard.press('Enter');
+        }
+
+        await sleepWithLog(2000, 'Doi dropdown time');
+
+        const timeSelected = await page.evaluate((t24, t12) => {
+          const queryAllDeep = (sel, root = document) => {
+            let r = Array.from(root.querySelectorAll ? root.querySelectorAll(sel) : []);
+            (root.querySelectorAll ? root.querySelectorAll('*') : []).forEach(c => {
+              if (c.shadowRoot) r = r.concat(queryAllDeep(sel, c.shadowRoot));
+            });
+            return r;
+          };
+          const norm = s => s.replace(/\s+/g, ' ').trim().toUpperCase();
+          const targets = [norm(t24), norm(t12)];
+          const opts = queryAllDeep('tp-yt-paper-item').filter(el => el.offsetWidth > 0 && /\d{1,2}:\d{2}/.test((el.textContent||'').trim()));
+          for (const o of opts) {
+            const ot = norm(o.textContent);
+            if (targets.includes(ot)) { o.scrollIntoView({behavior:'smooth',block:'center'}); o.click(); return { found: true }; }
+          }
+          return { found: false, count: opts.length };
+        }, timeStr24, timeStr12);
+
+        if (!timeSelected.found) {
+          logger.warn(profileId, 'Time not found in dropdown, typing directly');
+          await page.keyboard.type(timeStr24, { delay: 50 });
+          await page.keyboard.press('Enter');
+        }
+        await page.keyboard.press('Escape');
       }
-      await actionDelay();
-      await page.keyboard.press('Escape');
+      
       logger.debug(profileId, '  Time set: ' + timeStr24);
     } catch (e) {
       logger.warn(profileId, 'Loi set time: ' + e.message);
