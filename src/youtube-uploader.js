@@ -232,26 +232,39 @@ async function uploadShort(params) {
 
     // Set date
     try {
-      // Debug: dump schedule area DOM
+      // Debug: dump schedule area DOM (xuyen shadow DOM)
       const scheduleDebug = await page.evaluate(() => {
-        // Tim tat ca input va trigger tren toan page
-        const allInputs = Array.from(document.querySelectorAll('input')).map(i => ({
+        const queryAllDeep = (sel, root = document) => {
+          let r = Array.from(root.querySelectorAll ? root.querySelectorAll(sel) : []);
+          (root.querySelectorAll ? root.querySelectorAll('*') : []).forEach(c => {
+            if (c.shadowRoot) r = r.concat(queryAllDeep(sel, c.shadowRoot));
+          });
+          return r;
+        };
+        
+        const allInputs = queryAllDeep('input').map(i => ({
           id: i.id, type: i.type, value: (i.value || '').substring(0, 30), 
           aria: (i.getAttribute('aria-label') || '').substring(0, 30), w: i.offsetWidth
         })).filter(i => i.w > 0);
         
-        const allTriggers = Array.from(document.querySelectorAll('ytcp-text-dropdown-trigger, #datepicker-trigger')).map(t => ({
+        const allTriggers = queryAllDeep('ytcp-text-dropdown-trigger').map(t => ({
           id: t.id, text: (t.textContent || '').trim().substring(0, 40), w: t.offsetWidth
         })).filter(t => t.w > 0);
         
-        const datePickers = document.querySelectorAll('ytcp-date-picker');
-        const timePickers = document.querySelectorAll('ytcp-time-of-day-picker, ytcp-time-of-day-picker-v2');
+        const datePickers = queryAllDeep('ytcp-date-picker').length;
+        const timePickers = queryAllDeep('ytcp-time-of-day-picker').length + queryAllDeep('ytcp-time-of-day-picker-v2').length;
+        
+        // Check schedule radio state
+        const scheduleRadio = document.querySelector('#schedule-radio-button');
+        const scheduleChecked = scheduleRadio ? scheduleRadio.getAttribute('checked') !== null || scheduleRadio.getAttribute('active') !== null : false;
+        const scheduleArea = document.querySelector('#schedule-date-time');
         
         return { 
-          inputs: allInputs, 
-          triggers: allTriggers, 
-          datePickers: datePickers.length,
-          timePickers: timePickers.length,
+          inputs: allInputs, triggers: allTriggers, 
+          datePickers, timePickers,
+          scheduleRadio: !!scheduleRadio, scheduleChecked,
+          scheduleDateTimeArea: !!scheduleArea,
+          scheduleDateTimeHTML: scheduleArea ? scheduleArea.innerHTML.substring(0, 300) : 'not found',
         };
       });
       logger.debug(profileId, '  Schedule DOM: ' + JSON.stringify(scheduleDebug));
