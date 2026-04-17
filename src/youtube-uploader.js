@@ -264,21 +264,25 @@ async function uploadShort(params) {
     const viMonths = ['thg 1','thg 2','thg 3','thg 4','thg 5','thg 6','thg 7','thg 8','thg 9','thg 10','thg 11','thg 12'];
     const enMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     
-    // Detect ngon ngu tu date input hien tai
-    const currentDateValue = await page.evaluate(() => {
+    // Detect ngon ngu tu page lang hoac date input
+    const pageLang = await page.evaluate(() => {
+      // Cach 1: doc tu date input value
       const inputs = document.querySelectorAll('input');
       for (const inp of inputs) {
-        if (inp.id === 'text-input' && inp.offsetWidth > 0) return inp.value;
+        if (inp.offsetWidth > 0 && /Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/i.test(inp.value)) return 'en';
+        if (inp.offsetWidth > 0 && /thg/i.test(inp.value)) return 'vi';
       }
-      // Fallback: tim input co value chua thg hoac month name
-      for (const inp of inputs) {
-        if (inp.offsetWidth > 0 && (/thg|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/i.test(inp.value))) return inp.value;
-      }
-      return '';
+      // Cach 2: doc tu page text
+      const body = document.body.innerText;
+      if (body.includes('Schedule') || body.includes('Visibility')) return 'en';
+      if (body.includes('Lên lịch') || body.includes('Chế độ hiển thị')) return 'vi';
+      // Cach 3: doc tu html lang
+      const lang = document.documentElement.lang || navigator.language || '';
+      return lang.startsWith('vi') ? 'vi' : 'en';
     });
-    logger.debug(profileId, '  Current date value: ' + currentDateValue);
+    logger.debug(profileId, '  Page lang: ' + pageLang);
     
-    const isEnglish = /Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/i.test(currentDateValue);
+    const isEnglish = pageLang === 'en';
     let dateStr;
     if (isEnglish) {
       dateStr = enMonths[scheduleDate.month - 1] + ' ' + scheduleDate.day + ', ' + scheduleDate.year;
@@ -435,8 +439,13 @@ async function uploadShort(params) {
         await actionDelay();
         await page.keyboard.press('Escape');
         await actionDelay();
-        // Tab de chuyen focus sang o time (khong blur random)
+        // Tab de chuyen focus sang o time
         await page.keyboard.press('Tab');
+        await actionDelay();
+        // Ctrl+A select all trong o time
+        await page.keyboard.down('Control');
+        await page.keyboard.press('KeyA');
+        await page.keyboard.up('Control');
         await actionDelay();
       } else {
         logger.warn(profileId, 'Date input not found');
