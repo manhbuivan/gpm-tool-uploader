@@ -411,6 +411,13 @@ async function uploadShort(params) {
         await page.keyboard.press('Enter');
         await actionDelay();
         await page.keyboard.press('Escape');
+        await actionDelay();
+        // Click vao title dialog de blur o date (vung an toan)
+        await page.evaluate(() => {
+          const el = document.activeElement;
+          if (el) el.blur();
+        });
+        await actionDelay();
       } else {
         logger.warn(profileId, 'Date input not found');
       }
@@ -439,8 +446,12 @@ async function uploadShort(params) {
       logger.debug(profileId, '  Time input: ' + JSON.stringify(timeInputFound));
       
       if (timeInputFound.found) {
-        // Triple click + type de len
-        await page.mouse.click(timeInputFound.x, timeInputFound.y, { clickCount: 3 });
+        // Click vao time input + Ctrl+A + type de len
+        await page.mouse.click(timeInputFound.x, timeInputFound.y);
+        await actionDelay();
+        await page.keyboard.down('Control');
+        await page.keyboard.press('KeyA');
+        await page.keyboard.up('Control');
         await actionDelay();
         await page.keyboard.type(timeStr24, { delay: 50 });
         await page.keyboard.press('Enter');
