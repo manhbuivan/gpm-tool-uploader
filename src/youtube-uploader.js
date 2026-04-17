@@ -262,7 +262,29 @@ async function uploadShort(params) {
     // 14. Set date + time
     const pad2 = n => String(n).padStart(2, '0');
     const viMonths = ['thg 1','thg 2','thg 3','thg 4','thg 5','thg 6','thg 7','thg 8','thg 9','thg 10','thg 11','thg 12'];
-    const dateStr = scheduleDate.day + ' ' + viMonths[scheduleDate.month - 1] + ', ' + scheduleDate.year;
+    const enMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    
+    // Detect ngon ngu tu date input hien tai
+    const currentDateValue = await page.evaluate(() => {
+      const inputs = document.querySelectorAll('input');
+      for (const inp of inputs) {
+        if (inp.id === 'text-input' && inp.offsetWidth > 0) return inp.value;
+      }
+      // Fallback: tim input co value chua thg hoac month name
+      for (const inp of inputs) {
+        if (inp.offsetWidth > 0 && (/thg|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/i.test(inp.value))) return inp.value;
+      }
+      return '';
+    });
+    logger.debug(profileId, '  Current date value: ' + currentDateValue);
+    
+    const isEnglish = /Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/i.test(currentDateValue);
+    let dateStr;
+    if (isEnglish) {
+      dateStr = enMonths[scheduleDate.month - 1] + ' ' + scheduleDate.day + ', ' + scheduleDate.year;
+    } else {
+      dateStr = scheduleDate.day + ' ' + viMonths[scheduleDate.month - 1] + ', ' + scheduleDate.year;
+    }
 
     let hTemp = scheduleDate.hours;
     let mTemp = scheduleDate.minutes;
@@ -270,12 +292,13 @@ async function uploadShort(params) {
     if (mTemp === 60) { mTemp = 0; hTemp += 1; }
     if (hTemp === 24) { hTemp = 0; }
     const timeStr24 = pad2(hTemp) + ':' + pad2(mTemp);
-    // 12h format cho YouTube VN (SA = sang, CH = chieu)
-    const ampm = hTemp >= 12 ? 'CH' : 'SA';
+    // 12h format
+    const ampmVi = hTemp >= 12 ? 'CH' : 'SA';
+    const ampmEn = hTemp >= 12 ? 'PM' : 'AM';
     let h12 = hTemp % 12; if (h12 === 0) h12 = 12;
-    const timeStr12 = pad2(h12) + ':' + pad2(mTemp) + ' ' + ampm;
+    const timeStr12 = h12 + ':' + pad2(mTemp) + ' ' + (isEnglish ? ampmEn : ampmVi);
 
-    logger.info(profileId, '  Date: ' + dateStr + ' | Time: ' + timeStr24 + ' (' + timeStr12 + ')');
+    logger.info(profileId, '  Date: ' + dateStr + ' | Time: ' + timeStr24 + ' (' + timeStr12 + ') | Lang: ' + (isEnglish ? 'EN' : 'VI'));
 
     // Set date
     try {
@@ -412,11 +435,8 @@ async function uploadShort(params) {
         await actionDelay();
         await page.keyboard.press('Escape');
         await actionDelay();
-        // Click vao title dialog de blur o date (vung an toan)
-        await page.evaluate(() => {
-          const el = document.activeElement;
-          if (el) el.blur();
-        });
+        // Tab de chuyen focus sang o time (khong blur random)
+        await page.keyboard.press('Tab');
         await actionDelay();
       } else {
         logger.warn(profileId, 'Date input not found');
