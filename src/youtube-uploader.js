@@ -439,14 +439,6 @@ async function uploadShort(params) {
         await actionDelay();
         await page.keyboard.press('Escape');
         await actionDelay();
-        // Tab de chuyen focus sang o time
-        await page.keyboard.press('Tab');
-        await actionDelay();
-        // Ctrl+A select all trong o time
-        await page.keyboard.down('Control');
-        await page.keyboard.press('KeyA');
-        await page.keyboard.up('Control');
-        await actionDelay();
       } else {
         logger.warn(profileId, 'Date input not found');
       }
@@ -462,8 +454,8 @@ async function uploadShort(params) {
       const timeInputFound = await page.evaluate((newTime) => {
         const inputs = document.querySelectorAll('input');
         for (const inp of inputs) {
-          // Time input: visible, value dang HH:MM, khong phai query-input hay text-input
-          if (inp.offsetWidth > 0 && /^\d{1,2}:\d{2}$/.test(inp.value.trim()) && inp.id !== 'query-input' && inp.id !== 'text-input') {
+          // Time input: visible, value chua pattern gio (HH:MM hoac HH:MM AM/PM), khong phai query-input hay text-input
+          if (inp.offsetWidth > 0 && inp.id !== 'query-input' && inp.id !== 'text-input' && /\d{1,2}:\d{2}/.test(inp.value.trim())) {
             inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
             const r = inp.getBoundingClientRect();
             return { found: true, x: r.x + r.width / 2, y: r.y + r.height / 2, value: inp.value, method: 'direct-input' };
@@ -475,14 +467,17 @@ async function uploadShort(params) {
       logger.debug(profileId, '  Time input: ' + JSON.stringify(timeInputFound));
       
       if (timeInputFound.found) {
-        // Click vao time input + Ctrl+A + type de len
+        // Click vao time input
         await page.mouse.click(timeInputFound.x, timeInputFound.y);
         await actionDelay();
+        // Ctrl+A select all
         await page.keyboard.down('Control');
         await page.keyboard.press('KeyA');
         await page.keyboard.up('Control');
         await actionDelay();
-        await page.keyboard.type(timeStr24, { delay: 50 });
+        // Type de len - dung format phu hop voi ngon ngu
+        const timeToType = isEnglish ? timeStr12 : timeStr24;
+        await page.keyboard.type(timeToType, { delay: 50 });
         await page.keyboard.press('Enter');
         await actionDelay();
         await page.keyboard.press('Escape');
